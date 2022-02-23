@@ -9,5 +9,4 @@ class BenjaminApplicationTests {
     @Test
     fun contextLoads() {
     }
-
 }
