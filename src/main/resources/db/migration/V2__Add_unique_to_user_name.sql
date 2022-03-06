@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX ON users(user_name)
