@@ -1,9 +1,30 @@
 name: CI
-on: [push]
+on: [ push ]
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+
+    container:
+      image: openjdk:17-alpine
+
+    services:
+      postgres:
+        image: postgres:alpine
+        env:
+          POSTGRES_USER: benjamin
+          POSTGRES_PASSWORD: benjamin
+          POSTGRES_DB: benjamin
+        ports:
+          - 6543:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
       - run: ./gradlew clean build
+      - name: Archive test logs
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-logs
+          path: build/test-results/test/TEST-*.xml
