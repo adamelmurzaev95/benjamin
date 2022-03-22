@@ -1,4 +1,4 @@
-package benjamin.users
+package benjamin.users.impl
 
 import javax.persistence.Column
 import javax.persistence.Entity
@@ -28,6 +28,7 @@ class UserEntity {
 
     @Column(name = "password_hash")
     lateinit var passwordHash: String
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is UserEntity) return false

@@ -1,4 +1,4 @@
-package benjamin.projects
+package benjamin.projects.impl
 
 import javax.persistence.Column
 import javax.persistence.Entity

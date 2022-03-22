@@ -1,4 +1,4 @@
-package benjamin.users
+package benjamin.users.api
 
 data class RegisterUserCommand(
     val userName: String,

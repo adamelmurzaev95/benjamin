@@ -1,5 +1,9 @@
 package benjamin.users
 
+import benjamin.users.api.RegisterUserCommand
+import benjamin.users.api.RegisterUserResult
+import benjamin.users.api.User
+import benjamin.users.impl.UserService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

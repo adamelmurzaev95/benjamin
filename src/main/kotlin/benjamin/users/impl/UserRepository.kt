@@ -1,4 +1,4 @@
-package benjamin.users
+package benjamin.users.impl
 
 import org.springframework.data.repository.CrudRepository
 
