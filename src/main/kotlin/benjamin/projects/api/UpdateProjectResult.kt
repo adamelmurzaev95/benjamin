@@ -1,4 +1,4 @@
-package benjamin.projects
+package benjamin.projects.api
 
 sealed class UpdateProjectResult {
     object Success : UpdateProjectResult()

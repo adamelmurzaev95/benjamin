@@ -1,5 +1,8 @@
-package benjamin.users
+package benjamin.users.impl
 
+import benjamin.users.api.RegisterUserCommand
+import benjamin.users.api.RegisterUserResult
+import benjamin.users.api.User
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional

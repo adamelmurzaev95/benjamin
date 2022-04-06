@@ -1,5 +1,9 @@
-package benjamin.projects
+package benjamin.projects.impl
 
+import benjamin.projects.api.CreateProjectResult
+import benjamin.projects.api.Project
+import benjamin.projects.api.UpdateProjectCommand
+import benjamin.projects.api.UpdateProjectResult
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 
