@@ -1,5 +1,5 @@
 services:
-  postgres:
+  benjamin-postgres:
     image: postgres:alpine
     environment:
       POSTGRES_USER: benjamin
@@ -7,3 +7,32 @@ services:
       POSTGRES_DATABASE: benjamin
     ports:
       - "6543:5432"
+
+  keycloak-postgres:
+    image: postgres:alpine
+    environment:
+      POSTGRES_USER: keycloak
+      POSTGRES_PASSWORD: keycloak
+      POSTGRES_DATABASE: keycloak
+      PGDATA: /data/postgres
+    ports:
+    - "6544:5432"
+    volumes:
+      - postgres:/data/postgres
+
+  keycloak:
+    image: bitnami/keycloak
+    environment:
+      KEYCLOAK_ADMIN_USER: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KEYCLOAK_DATABASE_HOST: keycloak-postgres
+      KEYCLOAK_DATABASE_PORT: 5432
+      KEYCLOAK_DATABASE_NAME: keycloak
+      KEYCLOAK_DATABASE_USER: keycloak
+      KEYCLOAK_DATABASE_PASSWORD: keycloak
+    ports:
+      - "8082:8080"
+
+volumes:
+  postgres:
+    driver: local
