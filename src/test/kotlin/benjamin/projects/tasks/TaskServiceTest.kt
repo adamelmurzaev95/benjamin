@@ -141,6 +141,7 @@ class TaskServiceTest {
 
     @Test
     fun `getProfileByTitle should return correct result`() {
+        println("Test start")
         val start = Instant.now()
         val id = (taskService.create(createUserCommand1.userName, createTaskCommand) as CreateTaskResult.Success).id
         taskService.update(id, UpdateTaskCommand(status = TaskStatus.DONE))
