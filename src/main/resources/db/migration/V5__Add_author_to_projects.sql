@@ -1,0 +1,2 @@
+ALTER TABLE projects
+ADD COLUMN author VARCHAR(64) NOT NULL DEFAULT 'admin'

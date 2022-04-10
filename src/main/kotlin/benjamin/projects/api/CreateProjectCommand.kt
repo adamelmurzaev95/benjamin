@@ -1,7 +1,6 @@
 package benjamin.projects.api
 
-data class Project(
+data class CreateProjectCommand(
     val title: String,
     val description: String,
-    val author: String
 )

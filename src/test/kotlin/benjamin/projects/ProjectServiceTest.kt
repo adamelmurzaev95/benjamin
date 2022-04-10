@@ -1,5 +1,6 @@
 package benjamin.projects
 
+import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.CreateProjectResult
 import benjamin.projects.api.Project
 import benjamin.projects.api.UpdateProjectCommand
@@ -19,9 +20,15 @@ class ProjectServiceTest {
     @Autowired
     private lateinit var service: ProjectService
 
-    private val project = Project(
+    private val createProjectCommand = CreateProjectCommand(
         "Benjamin",
         "Task tracker"
+    )
+
+    private val project = Project(
+        "Benjamin",
+        "Task tracker",
+        "a.elmurzaev"
     )
 
     @Test
@@ -35,7 +42,7 @@ class ProjectServiceTest {
     @Test
     fun `getByTitle should return valid project`() {
 
-        service.create(project)
+        service.create(project.author, createProjectCommand)
 
         assertEquals(
             project,
@@ -46,11 +53,11 @@ class ProjectServiceTest {
     @Test
     fun `create should return AlreadyExists if project with such title exists`() {
 
-        service.create(project)
+        service.create(project.author, createProjectCommand)
 
         assertEquals(
             CreateProjectResult.AlreadyExists,
-            service.create(project)
+            service.create(project.author, createProjectCommand)
         )
     }
 
@@ -59,7 +66,7 @@ class ProjectServiceTest {
 
         assertEquals(
             CreateProjectResult.Success,
-            service.create(project)
+            service.create(project.author, createProjectCommand)
         )
     }
 
@@ -73,7 +80,7 @@ class ProjectServiceTest {
 
     @Test
     fun `update should return Success`() {
-        service.create(project)
+        service.create(project.author, createProjectCommand)
 
         assertEquals(
             UpdateProjectResult.Success,

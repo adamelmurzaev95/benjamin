@@ -1,5 +1,6 @@
 package benjamin.projects.tasks
 
+import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.Project
 import benjamin.projects.impl.ProjectService
 import benjamin.projects.tasks.api.CreateTaskCommand
@@ -39,6 +40,12 @@ class TaskServiceTest {
 
     private val project = Project(
         title = "Google",
+        description = "Search System",
+        author = "a.elmurzaev"
+    )
+
+    private val createProjectCommand = CreateProjectCommand(
+        title = "Google",
         description = "Search System"
     )
 
@@ -68,7 +75,7 @@ class TaskServiceTest {
     @BeforeEach
     fun setup() {
         userService.register(createUserCommand1)
-        projectService.create(project)
+        projectService.create(project.author, createProjectCommand)
     }
 
     @Test

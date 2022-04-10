@@ -20,6 +20,9 @@ class ProjectEntity {
     @Column(name = "description")
     lateinit var description: String
 
+    @Column(name = "author")
+    lateinit var author: String
+
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is ProjectEntity) return false
