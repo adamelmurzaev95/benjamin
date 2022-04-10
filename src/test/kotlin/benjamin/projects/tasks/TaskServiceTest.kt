@@ -164,9 +164,11 @@ class TaskServiceTest {
         )
 
         val end = Instant.now()
+        println("Test end")
 
         val creationDateTime = actual!!.creationDateTime.toEpochMilli()
         val changedDateTime = actual.changedDateTime.toEpochMilli()
+        println("Changed - $changedDateTime, start - ${start.toEpochMilli()}, end - ${end.toEpochMilli()}")
         assertTrue(
             creationDateTime > start.toEpochMilli() && creationDateTime < end.toEpochMilli()
         )
