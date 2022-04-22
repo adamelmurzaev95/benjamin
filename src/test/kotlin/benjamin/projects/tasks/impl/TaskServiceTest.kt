@@ -1,4 +1,4 @@
-package benjamin.projects.tasks
+package benjamin.projects.tasks.impl
 
 import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.Project
@@ -11,58 +11,42 @@ import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
-import benjamin.projects.tasks.impl.TaskService
-import benjamin.users.api.RegisterUserCommand
 import benjamin.users.impl.UserService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
+import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
 import java.time.Instant
 
 @DataJpaTest
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TaskService::class, ProjectService::class, UserService::class)
+@Import(TaskService::class, ProjectService::class)
 class TaskServiceTest {
     @Autowired
     private lateinit var projectService: ProjectService
 
     @Autowired
-    private lateinit var userService: UserService
-
-    @Autowired
     private lateinit var taskService: TaskService
+
+    @MockBean
+    private lateinit var userService: UserService
 
     private val project = Project(
         title = "Google",
         description = "Search System",
-        author = "a.elmurzaev"
+        author = "adamelmurzaev95"
     )
 
     private val createProjectCommand = CreateProjectCommand(
         title = "Google",
         description = "Search System"
-    )
-
-    private val createUserCommand1 = RegisterUserCommand(
-        userName = "adamelmurzaev95",
-        firstName = "Adam",
-        lastName = "Elmurzaev",
-        email = "adamelmurzaev@gmail.com",
-        password = "user123"
-    )
-
-    private val createUserCommand2 = RegisterUserCommand(
-        userName = "ivanandrianov",
-        firstName = "Ivan",
-        lastName = "Andrianov",
-        email = "ivan@gmail.com",
-        password = "user123"
     )
 
     private val createTaskCommand = CreateTaskCommand(
@@ -72,9 +56,12 @@ class TaskServiceTest {
         assignee = "adamelmurzaev95"
     )
 
+    private val username1 = "adamelmurzaev95"
+
+    private val username2 = "ivanandrianov"
+
     @BeforeEach
     fun setup() {
-        userService.register(createUserCommand1)
         projectService.create(project.author, createProjectCommand)
     }
 
@@ -88,28 +75,32 @@ class TaskServiceTest {
 
     @Test
     fun `getByProjectTitle should return correct response`() {
-        userService.register(createUserCommand2)
+        Mockito.`when`(userService.existsByUserName(username1))
+            .thenReturn(true)
+
+        Mockito.`when`(userService.existsByUserName(username2))
+            .thenReturn(true)
 
         val id1 = (
             taskService.create(
-                author = createUserCommand1.userName,
+                author = username1,
                 createCommand = createTaskCommand
             ) as CreateTaskResult.Success
             ).id
 
         val id2 = (
             taskService.create(
-                author = createUserCommand1.userName,
+                author = username1,
                 createCommand = createTaskCommand.copy(title = "Google-2", description = "Create gitlab project")
             ) as CreateTaskResult.Success
             ).id
 
         taskService.create(
-            author = createUserCommand1.userName,
+            author = username2,
             createCommand = createTaskCommand.copy(
                 title = "Google-3",
                 description = "Add ci cd",
-                assignee = "ivanandrianov"
+                assignee = username2
             )
         )
 
@@ -118,9 +109,9 @@ class TaskServiceTest {
 
         val expected = Tasks(
             tasks = listOf(
-                Task("Google-1", createUserCommand1.userName, TaskStatus.IN_PROGRESS),
-                Task("Google-2", createUserCommand1.userName, TaskStatus.IN_PROGRESS),
-                Task("Google-3", "ivanandrianov", TaskStatus.NEW)
+                Task("Google-1", username1, TaskStatus.IN_PROGRESS),
+                Task("Google-2", username1, TaskStatus.IN_PROGRESS),
+                Task("Google-3", username2, TaskStatus.NEW)
             )
         )
 
@@ -141,19 +132,21 @@ class TaskServiceTest {
 
     @Test
     fun `getProfileByTitle should return correct result`() {
+        Mockito.`when`(userService.existsByUserName(username1))
+            .thenReturn(true)
+
         val start = Instant.now()
-        val id = (taskService.create(createUserCommand1.userName, createTaskCommand) as CreateTaskResult.Success).id
-        taskService.update(id, UpdateTaskCommand(status = TaskStatus.DONE))
+        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
 
         val expected = TaskProfile(
             title = "Google-1",
             description = "Create project",
             projectTitle = "Google",
-            author = createUserCommand1.userName,
-            assignee = createUserCommand1.userName,
+            author = username1,
+            assignee = username1,
             creationDateTime = start,
             changedDateTime = start,
-            status = TaskStatus.DONE
+            status = TaskStatus.NEW
         )
 
         val actual = taskService.getProfileById(id)
@@ -167,12 +160,11 @@ class TaskServiceTest {
 
         val creationDateTime = actual!!.creationDateTime.toEpochMilli()
         val changedDateTime = actual.changedDateTime.toEpochMilli()
-        assertTrue(
-            creationDateTime > start.toEpochMilli() && creationDateTime < end.toEpochMilli()
-        )
-        assertTrue(
-            changedDateTime > start.toEpochMilli() && changedDateTime < end.toEpochMilli()
-        )
+
+        assertTrue(creationDateTime > start.toEpochMilli())
+        assertTrue(creationDateTime < end.toEpochMilli())
+        assertTrue(changedDateTime > start.toEpochMilli())
+        assertTrue(changedDateTime < end.toEpochMilli())
     }
 
     @Test
@@ -180,7 +172,7 @@ class TaskServiceTest {
         assertEquals(
             CreateTaskResult.ProjectNotFound,
             taskService.create(
-                createUserCommand1.userName,
+                username1,
                 createTaskCommand.copy(projectTitle = "Amazon")
             )
         )
@@ -191,7 +183,7 @@ class TaskServiceTest {
         assertEquals(
             CreateTaskResult.AssigneeNotFound,
             taskService.create(
-                createUserCommand1.userName,
+                username1,
                 createTaskCommand.copy(assignee = "i.andrianov")
             )
         )
@@ -201,7 +193,7 @@ class TaskServiceTest {
     fun `create should return Success when assignee is null`() {
         assertTrue(
             taskService.create(
-                createUserCommand1.userName,
+                username1,
                 createTaskCommand.copy(assignee = null)
             ) is CreateTaskResult.Success
         )
@@ -209,9 +201,12 @@ class TaskServiceTest {
 
     @Test
     fun `create should return Success when there no problem`() {
+        Mockito.`when`(userService.existsByUserName(username1))
+            .thenReturn(true)
+
         assertTrue(
             taskService.create(
-                createUserCommand1.userName,
+                username1,
                 createTaskCommand
             ) is CreateTaskResult.Success
         )
@@ -230,7 +225,11 @@ class TaskServiceTest {
 
     @Test
     fun `update should return AssigneeNotFound when assignee with such userName doesnt exist`() {
-        val id = (taskService.create(createUserCommand1.userName, createTaskCommand) as CreateTaskResult.Success).id
+        Mockito.`when`(userService.existsByUserName(username1))
+            .thenReturn(true)
+            .thenReturn(false)
+
+        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
         assertEquals(
             UpdateTaskResult.AssigneeNotFound,
             taskService.update(
@@ -242,7 +241,10 @@ class TaskServiceTest {
 
     @Test
     fun `update should return Success when assignee is null`() {
-        val id = (taskService.create(createUserCommand1.userName, createTaskCommand) as CreateTaskResult.Success).id
+        Mockito.`when`(userService.existsByUserName(username1))
+            .thenReturn(true)
+
+        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
         assertEquals(
             UpdateTaskResult.Success,
             taskService.update(
@@ -254,13 +256,16 @@ class TaskServiceTest {
 
     @Test
     fun `update should return Success when there no problem`() {
-        val id = (taskService.create(createUserCommand1.userName, createTaskCommand) as CreateTaskResult.Success).id
+        Mockito.`when`(userService.existsByUserName(username1))
+            .thenReturn(true)
+
+        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
         assertEquals(
             UpdateTaskResult.Success,
             taskService.update(
                 id,
                 UpdateTaskCommand(
-                    assignee = createUserCommand1.userName,
+                    assignee = username1,
                     description = "Do something",
                     status = TaskStatus.DONE
                 )

@@ -1,8 +1,7 @@
 package benjamin.users.api
 
 data class User(
-    val userName: String,
+    val username: String,
     val firstName: String,
-    val lastName: String,
-    val email: String
+    val lastName: String
 )

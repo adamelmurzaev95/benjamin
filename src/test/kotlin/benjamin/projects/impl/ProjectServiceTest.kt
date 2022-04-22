@@ -1,11 +1,10 @@
-package benjamin.projects
+package benjamin.projects.impl
 
 import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.CreateProjectResult
 import benjamin.projects.api.Project
 import benjamin.projects.api.UpdateProjectCommand
 import benjamin.projects.api.UpdateProjectResult
-import benjamin.projects.impl.ProjectService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired

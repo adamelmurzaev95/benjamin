@@ -48,7 +48,7 @@ class TaskService(
             return CreateTaskResult.ProjectNotFound
         }
 
-        if (assignee != null && userService.getByUserName(assignee) == null) {
+        if (assignee != null && !userService.existsByUserName(assignee)) {
             return CreateTaskResult.AssigneeNotFound
         }
 
@@ -64,7 +64,7 @@ class TaskService(
 
         val assignee = updateCommand.assignee
 
-        if (assignee != null && userService.getByUserName(assignee) == null) {
+        if (assignee != null && !userService.existsByUserName(assignee)) {
             return UpdateTaskResult.AssigneeNotFound
         }
 
