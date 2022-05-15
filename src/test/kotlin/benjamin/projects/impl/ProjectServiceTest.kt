@@ -40,7 +40,6 @@ class ProjectServiceTest {
 
     @Test
     fun `getByTitle should return valid project`() {
-
         service.create(project.author, createProjectCommand)
 
         assertEquals(
@@ -51,7 +50,6 @@ class ProjectServiceTest {
 
     @Test
     fun `create should return AlreadyExists if project with such title exists`() {
-
         service.create(project.author, createProjectCommand)
 
         assertEquals(
@@ -62,7 +60,6 @@ class ProjectServiceTest {
 
     @Test
     fun `create should return Success if project with such title doesnt exist`() {
-
         assertEquals(
             CreateProjectResult.Success,
             service.create(project.author, createProjectCommand)

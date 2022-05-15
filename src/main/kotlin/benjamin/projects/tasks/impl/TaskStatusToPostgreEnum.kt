@@ -1,8 +1,8 @@
-package benjamin.projects.tasks.api
+package benjamin.projects.tasks.impl
 
+import benjamin.projects.tasks.api.TaskStatus
 import org.hibernate.engine.spi.SharedSessionContractImplementor
 import org.hibernate.type.EnumType
-import org.postgresql.util.PGobject
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Types
@@ -16,9 +16,8 @@ class TaskStatusToPostgreEnum : EnumType<TaskStatus>() {
     ): TaskStatus? {
         val enum = rs.getObject(names[0]) ?: return null
         return when (enum) {
-            is PGobject -> {
-                val enumValue = enum.value
-                if (enumValue != null) TaskStatus.valueOf(enumValue) else null
+            is String -> {
+                TaskStatus.valueOf(enum)
             }
             else -> null
         }

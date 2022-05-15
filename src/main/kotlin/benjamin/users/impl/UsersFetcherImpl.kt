@@ -1,7 +1,6 @@
 package benjamin.users.impl
 
 import benjamin.users.api.User
-import benjamin.users.api.UsersFetcher
 import org.springframework.http.MediaType
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono

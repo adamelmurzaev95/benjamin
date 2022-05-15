@@ -2,7 +2,6 @@ package benjamin.projects.tasks.impl
 
 import benjamin.projects.impl.ProjectEntity
 import benjamin.projects.tasks.api.TaskStatus
-import benjamin.projects.tasks.api.TaskStatusToPostgreEnum
 import org.hibernate.annotations.Type
 import org.hibernate.annotations.TypeDef
 import java.time.Instant

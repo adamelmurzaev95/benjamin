@@ -2,6 +2,7 @@ package benjamin.projects.impl
 
 import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.CreateProjectResult
+import benjamin.projects.api.DeleteProjectResult
 import benjamin.projects.api.Project
 import benjamin.projects.api.UpdateProjectCommand
 import benjamin.projects.api.UpdateProjectResult
@@ -19,10 +20,10 @@ class ProjectService(
     }
 
     @Transactional
-    fun create(username: String, createProjectCommand: CreateProjectCommand): CreateProjectResult {
+    fun create(author: String, createProjectCommand: CreateProjectCommand): CreateProjectResult {
         if (repo.existsByTitle(createProjectCommand.title)) return CreateProjectResult.AlreadyExists
 
-        repo.save(toEntity(username, createProjectCommand))
+        repo.save(toEntity(author, createProjectCommand))
         return CreateProjectResult.Success
     }
 
@@ -36,6 +37,17 @@ class ProjectService(
 
         return UpdateProjectResult.Success
     }
+
+    @Transactional
+    fun delete(title: String): DeleteProjectResult {
+        if (!repo.existsByTitle(title)) return DeleteProjectResult.NotFound
+
+        repo.deleteByTitle(title)
+        return DeleteProjectResult.Success
+    }
+
+    @Transactional(readOnly = true)
+    fun existsByTitle(title: String) = repo.existsByTitle(title)
 
     private fun fillEntity(entity: ProjectEntity, updateCommand: UpdateProjectCommand) {
         if (updateCommand.description != null) entity.description = updateCommand.description

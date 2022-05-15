@@ -1,4 +1,4 @@
-package benjamin.users.api.keycloak
+package benjamin.users.keycloak
 
 data class KeycloakProps(
     val host: String,

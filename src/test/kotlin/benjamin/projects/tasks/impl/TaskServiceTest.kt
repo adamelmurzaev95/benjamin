@@ -4,7 +4,6 @@ import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.Project
 import benjamin.projects.impl.ProjectService
 import benjamin.projects.tasks.api.CreateTaskCommand
-import benjamin.projects.tasks.api.CreateTaskResult
 import benjamin.projects.tasks.api.Task
 import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
@@ -52,7 +51,6 @@ class TaskServiceTest {
     private val createTaskCommand = CreateTaskCommand(
         title = "Google-1",
         description = "Create project",
-        projectTitle = "Google",
         assignee = "adamelmurzaev95"
     )
 
@@ -60,13 +58,15 @@ class TaskServiceTest {
 
     private val username2 = "ivanandrianov"
 
+    private val projectTitle = "Google"
+
     @BeforeEach
     fun setup() {
         projectService.create(project.author, createProjectCommand)
     }
 
     @Test
-    fun `getByProjectTitle should return empty map if no project with such title`() {
+    fun `getAllByProjectTitle should return empty map if no project with such title`() {
         assertEquals(
             Tasks(emptyList()),
             taskService.getAllByProjectTitle("Google")
@@ -74,29 +74,24 @@ class TaskServiceTest {
     }
 
     @Test
-    fun `getByProjectTitle should return correct response`() {
+    fun `getAllByProjectTitle should return correct response`() {
         Mockito.`when`(userService.existsByUserName(username1))
             .thenReturn(true)
 
         Mockito.`when`(userService.existsByUserName(username2))
             .thenReturn(true)
 
-        val id1 = (
-            taskService.create(
-                author = username1,
-                createCommand = createTaskCommand
-            ) as CreateTaskResult.Success
-            ).id
+        val id1 = taskService.create(username1, projectTitle, createTaskCommand)
 
-        val id2 = (
-            taskService.create(
-                author = username1,
-                createCommand = createTaskCommand.copy(title = "Google-2", description = "Create gitlab project")
-            ) as CreateTaskResult.Success
-            ).id
+        val id2 = taskService.create(
+            author = username1,
+            projectTitle = projectTitle,
+            createCommand = createTaskCommand.copy(title = "Google-2", description = "Create gitlab project")
+        )
 
-        taskService.create(
+        val id3 = taskService.create(
             author = username2,
+            projectTitle = projectTitle,
             createCommand = createTaskCommand.copy(
                 title = "Google-3",
                 description = "Add ci cd",
@@ -109,9 +104,9 @@ class TaskServiceTest {
 
         val expected = Tasks(
             tasks = listOf(
-                Task("Google-1", username1, TaskStatus.IN_PROGRESS),
-                Task("Google-2", username1, TaskStatus.IN_PROGRESS),
-                Task("Google-3", username2, TaskStatus.NEW)
+                Task(id1, "Google-1", username1, TaskStatus.IN_PROGRESS),
+                Task(id2, "Google-2", username1, TaskStatus.IN_PROGRESS),
+                Task(id3, "Google-3", username2, TaskStatus.NEW)
             )
         )
 
@@ -136,9 +131,10 @@ class TaskServiceTest {
             .thenReturn(true)
 
         val start = Instant.now()
-        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
+        val id = taskService.create(username1, projectTitle, createTaskCommand)
 
         val expected = TaskProfile(
+            id = id,
             title = "Google-1",
             description = "Create project",
             projectTitle = "Google",
@@ -168,51 +164,6 @@ class TaskServiceTest {
     }
 
     @Test
-    fun `create should return ProjectNotFound when project with such title doesnt exist`() {
-        assertEquals(
-            CreateTaskResult.ProjectNotFound,
-            taskService.create(
-                username1,
-                createTaskCommand.copy(projectTitle = "Amazon")
-            )
-        )
-    }
-
-    @Test
-    fun `create should return AssigneeNotFound when assignee with such userName doesnt exist`() {
-        assertEquals(
-            CreateTaskResult.AssigneeNotFound,
-            taskService.create(
-                username1,
-                createTaskCommand.copy(assignee = "i.andrianov")
-            )
-        )
-    }
-
-    @Test
-    fun `create should return Success when assignee is null`() {
-        assertTrue(
-            taskService.create(
-                username1,
-                createTaskCommand.copy(assignee = null)
-            ) is CreateTaskResult.Success
-        )
-    }
-
-    @Test
-    fun `create should return Success when there no problem`() {
-        Mockito.`when`(userService.existsByUserName(username1))
-            .thenReturn(true)
-
-        assertTrue(
-            taskService.create(
-                username1,
-                createTaskCommand
-            ) is CreateTaskResult.Success
-        )
-    }
-
-    @Test
     fun `update should return TaskNotFound when task with such id doesnt exist`() {
         assertEquals(
             UpdateTaskResult.TaskNotFound,
@@ -224,42 +175,11 @@ class TaskServiceTest {
     }
 
     @Test
-    fun `update should return AssigneeNotFound when assignee with such userName doesnt exist`() {
-        Mockito.`when`(userService.existsByUserName(username1))
-            .thenReturn(true)
-            .thenReturn(false)
-
-        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
-        assertEquals(
-            UpdateTaskResult.AssigneeNotFound,
-            taskService.update(
-                id,
-                updateCommand = UpdateTaskCommand(assignee = "adam")
-            )
-        )
-    }
-
-    @Test
-    fun `update should return Success when assignee is null`() {
-        Mockito.`when`(userService.existsByUserName(username1))
-            .thenReturn(true)
-
-        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
-        assertEquals(
-            UpdateTaskResult.Success,
-            taskService.update(
-                id,
-                UpdateTaskCommand(assignee = null, description = "Do something", status = TaskStatus.DONE)
-            )
-        )
-    }
-
-    @Test
     fun `update should return Success when there no problem`() {
         Mockito.`when`(userService.existsByUserName(username1))
             .thenReturn(true)
 
-        val id = (taskService.create(username1, createTaskCommand) as CreateTaskResult.Success).id
+        val id = taskService.create(username1, projectTitle, createTaskCommand)
         assertEquals(
             UpdateTaskResult.Success,
             taskService.update(
