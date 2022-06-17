@@ -1,5 +1,6 @@
 package benjamin.projects.impl
 
+import benjamin.TestContainerPostgres
 import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.CreateProjectResult
 import benjamin.projects.api.Project
@@ -12,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.context.annotation.Import
 
-@DataJpaTest
+@DataJpaTest(properties = [TestContainerPostgres.url])
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import(ProjectService::class)
 class ProjectServiceTest {

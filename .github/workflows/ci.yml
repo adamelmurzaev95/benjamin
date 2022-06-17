@@ -7,18 +7,6 @@ jobs:
     container:
       image: openjdk:17-alpine
 
-    services:
-      postgres:
-        image: postgres:alpine
-        env:
-          POSTGRES_USER: benjamin
-          POSTGRES_PASSWORD: benjamin
-          POSTGRES_DB: benjamin
-        ports:
-          - 6543:5432
-        # needed because the postgres container does not provide a healthcheck
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
