@@ -2,25 +2,22 @@ package benjamin.projects.tasks.impl
 
 import benjamin.projects.impl.ProjectRepository
 import benjamin.projects.tasks.api.CreateTaskCommand
+import benjamin.projects.tasks.api.DeleteTaskResult
 import benjamin.projects.tasks.api.Task
 import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
 import java.time.Instant
+import java.util.UUID
 
-@Component
 class TaskService(
     private val taskRepo: TaskRepository,
     private val projectRepo: ProjectRepository,
 ) {
-    @Transactional(readOnly = true)
-    fun getAllByProjectTitle(projectTitle: String): Tasks? {
-        val projectEntity = projectRepo.findByTitle(projectTitle)
-        if (projectEntity == null) return null
+    fun getAllByProjectUuid(projectUuid: UUID): Tasks {
+        val projectEntity = projectRepo.findByUuid(projectUuid)!!
 
         return Tasks(
             taskRepo.getAllByProject(projectEntity)
@@ -29,29 +26,44 @@ class TaskService(
         )
     }
 
-    @Transactional(readOnly = true)
-    fun getProfileById(id: Int): TaskProfile? {
-        return taskRepo.findById(id)
-            .map { profileFromEntity(it) }
-            .orElse(null)
+    fun getAllByAssigneeAndProjectUuid(assignee: String, projectUuid: UUID): Tasks {
+        val projectEntity = projectRepo.findByUuid(projectUuid)
+        return Tasks(taskRepo.getAllByAssigneeAndProject(assignee, projectEntity!!).map { fromEntity(it) })
     }
 
-    @Transactional
-    fun create(author: String, projectTitle: String, createCommand: CreateTaskCommand): Int {
-        val savedEntity = taskRepo.save(toEntity(author, projectTitle, createCommand))
-        return savedEntity.id!!
+    fun getProfileByNumberAndProjectUuid(number: Int, projectUuid: UUID): TaskProfile {
+        val projectEntity = projectRepo.findByUuid(projectUuid)!!
+
+        return profileFromEntity(taskRepo.findByProjectAndNumber(projectEntity, number))
     }
 
-    @Transactional
-    fun update(id: Int, updateCommand: UpdateTaskCommand): UpdateTaskResult {
-        val taskEntity = taskRepo.findById(id).orElse(null)
+    fun create(author: String, projectUuid: UUID, createCommand: CreateTaskCommand): Int {
+        val savedEntity = taskRepo.save(toEntity(author, projectUuid, createCommand))
+        return savedEntity.number!!
+    }
 
-        if (taskEntity == null) return UpdateTaskResult.TaskNotFound
+    fun update(number: Int, projectUuid: UUID, updateCommand: UpdateTaskCommand): UpdateTaskResult {
+        val projectEntity = projectRepo.findByUuid(projectUuid)!!
+        val taskEntity = taskRepo.findByProjectAndNumber(projectEntity, number)
 
         fillEntity(taskEntity, updateCommand)
         taskRepo.save(taskEntity)
 
         return UpdateTaskResult.Success
+    }
+
+    fun delete(number: Int, projectUuid: UUID): DeleteTaskResult {
+        val projectEntity = projectRepo.findByUuid(projectUuid)!!
+
+        taskRepo.deleteByProjectAndNumber(projectEntity, number)
+
+        return DeleteTaskResult.Success
+    }
+
+    fun existsByProjectUuidAndNumber(number: Int, projectUuid: UUID): Boolean {
+        val projectEntity = projectRepo.findByUuid(projectUuid)!!
+
+        return taskRepo.existsByProjectAndNumber(projectEntity, number)
     }
 
     private fun fillEntity(taskEntity: TaskEntity, updateCommand: UpdateTaskCommand) {
@@ -62,31 +74,31 @@ class TaskService(
         taskEntity.changedDateTime = Instant.now()
     }
 
-    private fun toEntity(taskAuthor: String, projectTitle: String, createCommand: CreateTaskCommand): TaskEntity {
+    private fun toEntity(taskAuthor: String, projectUuid: UUID, createCommand: CreateTaskCommand): TaskEntity {
         return TaskEntity().apply {
             title = createCommand.title
             description = createCommand.description
-            project = projectRepo.findByTitle(projectTitle)!!
+            project = projectRepo.findByUuid(projectUuid)!!
             author = taskAuthor
             assignee = createCommand.assignee
             creationDateTime = Instant.now()
             changedDateTime = Instant.now()
             status = TaskStatus.NEW
+            number = (taskRepo.getMaxNumber() ?: 0) + 1
         }
     }
 
     private fun fromEntity(taskEntity: TaskEntity): Task {
         return Task(
-            id = taskEntity.id!!,
             title = taskEntity.title,
             assignee = taskEntity.assignee!!,
-            status = taskEntity.status
+            status = taskEntity.status,
+            number = taskEntity.number!!
         )
     }
 
     private fun profileFromEntity(taskEntity: TaskEntity): TaskProfile {
         return TaskProfile(
-            id = taskEntity.id!!,
             title = taskEntity.title,
             description = taskEntity.description,
             projectTitle = taskEntity.project.title,
@@ -94,7 +106,8 @@ class TaskService(
             assignee = taskEntity.assignee,
             creationDateTime = taskEntity.creationDateTime,
             changedDateTime = taskEntity.changedDateTime,
-            status = taskEntity.status
+            status = taskEntity.status,
+            number = taskEntity.number!!
         )
     }
 }

@@ -2,7 +2,7 @@ package benjamin.projects.tasks.impl
 
 import benjamin.TestContainerPostgres
 import benjamin.projects.api.CreateProjectCommand
-import benjamin.projects.api.Project
+import benjamin.projects.impl.ProjectRepository
 import benjamin.projects.impl.ProjectService
 import benjamin.projects.tasks.api.CreateTaskCommand
 import benjamin.projects.tasks.api.Task
@@ -11,38 +11,29 @@ import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
-import benjamin.users.impl.UserService
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
-import org.springframework.boot.test.mock.mockito.MockBean
-import org.springframework.context.annotation.Import
 import java.time.Instant
+import java.util.UUID
 
 @DataJpaTest(properties = [TestContainerPostgres.url])
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(TaskService::class, ProjectService::class)
 class TaskServiceTest {
     @Autowired
-    private lateinit var projectService: ProjectService
+    lateinit var projectRepository: ProjectRepository
 
     @Autowired
+    lateinit var taskRepository: TaskRepository
+
+    private lateinit var projectService: ProjectService
+
     private lateinit var taskService: TaskService
-
-    @MockBean
-    private lateinit var userService: UserService
-
-    private val project = Project(
-        title = "Google",
-        description = "Search System",
-        author = "adamelmurzaev95"
-    )
 
     private val createProjectCommand = CreateProjectCommand(
         title = "Google",
@@ -59,83 +50,93 @@ class TaskServiceTest {
 
     private val username2 = "ivanandrianov"
 
-    private val projectTitle = "Google"
+    lateinit var uuid: UUID
 
     @BeforeEach
     fun setup() {
-        projectService.create(project.author, createProjectCommand)
+        taskService = TaskService(taskRepository, projectRepository)
+        projectService = ProjectService(projectRepository)
+        uuid = projectService.create(username1, createProjectCommand)
     }
 
     @Test
-    fun `getAllByProjectTitle should return empty map if no project with such title`() {
+    fun `getAllByProjectUuid should return empty list if no tasks by this uuid`() {
         assertEquals(
             Tasks(emptyList()),
-            taskService.getAllByProjectTitle("Google")
+            taskService.getAllByProjectUuid(uuid)
         )
     }
 
     @Test
-    fun `getAllByProjectTitle should return correct response`() {
-        Mockito.`when`(userService.existsByUserName(username1))
-            .thenReturn(true)
-
-        Mockito.`when`(userService.existsByUserName(username2))
-            .thenReturn(true)
-
-        val id1 = taskService.create(username1, projectTitle, createTaskCommand)
-
-        val id2 = taskService.create(
-            author = username1,
-            projectTitle = projectTitle,
-            createCommand = createTaskCommand.copy(title = "Google-2", description = "Create gitlab project")
+    fun `getAllByProjectUuid should return correct response`() {
+        val num1 = taskService.create(username1, uuid, createTaskCommand)
+        val num2 = taskService.create(
+            username2,
+            uuid,
+            createTaskCommand.copy(title = "Google-2", description = "Create repo")
         )
-
-        val id3 = taskService.create(
-            author = username2,
-            projectTitle = projectTitle,
-            createCommand = createTaskCommand.copy(
-                title = "Google-3",
-                description = "Add ci cd",
-                assignee = username2
-            )
-        )
-
-        taskService.update(id1, UpdateTaskCommand(status = TaskStatus.IN_PROGRESS))
-        taskService.update(id2, UpdateTaskCommand(status = TaskStatus.IN_PROGRESS))
 
         val expected = Tasks(
             tasks = listOf(
-                Task(id1, "Google-1", username1, TaskStatus.IN_PROGRESS),
-                Task(id2, "Google-2", username1, TaskStatus.IN_PROGRESS),
-                Task(id3, "Google-3", username2, TaskStatus.NEW)
+                Task(
+                    title = "Google-1",
+                    assignee = username1,
+                    status = TaskStatus.NEW,
+                    number = num1
+                ),
+                Task(
+                    title = "Google-2",
+                    assignee = username1,
+                    status = TaskStatus.NEW,
+                    number = num2
+                )
             )
         )
 
-        val actual = taskService.getAllByProjectTitle("Google")
+        val actual = taskService.getAllByProjectUuid(uuid)
 
-        assertEquals(
-            expected,
-            actual
-        )
+        assertEquals(expected, actual)
     }
 
     @Test
-    fun `getProfileByTitle should return null if no task with such title`() {
-        assertNull(
-            taskService.getProfileById(1)
-        )
+    fun `getAllByAssigneeAndProjectUuid should return empty list`() {
+        assertTrue(taskService.getAllByAssigneeAndProjectUuid(username1, uuid).tasks.isEmpty())
     }
 
     @Test
-    fun `getProfileByTitle should return correct result`() {
-        Mockito.`when`(userService.existsByUserName(username1))
-            .thenReturn(true)
+    fun `getAllByAssigneeAndProjectUuid should return correct list`() {
+        val num1 = taskService.create(username1, uuid, createTaskCommand)
+        val num2 = taskService.create(username1, uuid, createTaskCommand.copy(title = "Google-2"))
+        taskService.create(username1, uuid, createTaskCommand.copy(title = "Google-3", assignee = "islam"))
 
+        val expected = Tasks(
+            tasks = listOf(
+                Task(
+                    createTaskCommand.title,
+                    createTaskCommand.assignee!!,
+                    TaskStatus.NEW,
+                    num1
+                ),
+                Task(
+                    "Google-2",
+                    createTaskCommand.assignee!!,
+                    TaskStatus.NEW,
+                    num2
+                )
+            )
+        )
+
+        val actual = taskService.getAllByAssigneeAndProjectUuid(username1, uuid)
+
+        assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `getProfileByNumberAndProjectUuid should return correct result`() {
         val start = Instant.now()
-        val id = taskService.create(username1, projectTitle, createTaskCommand)
+        val num = taskService.create(username1, uuid, createTaskCommand)
 
         val expected = TaskProfile(
-            id = id,
             title = "Google-1",
             description = "Create project",
             projectTitle = "Google",
@@ -143,19 +144,20 @@ class TaskServiceTest {
             assignee = username1,
             creationDateTime = start,
             changedDateTime = start,
-            status = TaskStatus.NEW
+            status = TaskStatus.NEW,
+            number = num
         )
 
-        val actual = taskService.getProfileById(id)
+        val actual = taskService.getProfileByNumberAndProjectUuid(num, uuid)
 
         assertEquals(
             expected,
-            actual?.copy(creationDateTime = start, changedDateTime = start)
+            actual.copy(creationDateTime = start, changedDateTime = start)
         )
 
         val end = Instant.now()
 
-        val creationDateTime = actual!!.creationDateTime.toEpochMilli()
+        val creationDateTime = actual.creationDateTime.toEpochMilli()
         val changedDateTime = actual.changedDateTime.toEpochMilli()
 
         assertTrue(creationDateTime > start.toEpochMilli())
@@ -165,32 +167,49 @@ class TaskServiceTest {
     }
 
     @Test
-    fun `update should return TaskNotFound when task with such id doesnt exist`() {
-        assertEquals(
-            UpdateTaskResult.TaskNotFound,
-            taskService.update(
-                1,
-                updateCommand = UpdateTaskCommand()
+    fun `update should update task`() {
+        val num = taskService.create(username1, uuid, createTaskCommand)
+
+        val result = taskService.update(
+            number = num,
+            projectUuid = uuid,
+            updateCommand = UpdateTaskCommand(
+                assignee = username2,
+                description = "Do something",
+                status = TaskStatus.DONE
             )
+        )
+        assertEquals(
+            UpdateTaskResult.Success,
+            result
+        )
+
+        val expected = Task(
+            title = createTaskCommand.title,
+            assignee = username2,
+            status = TaskStatus.DONE,
+            number = num
+        )
+
+        assertEquals(
+            expected,
+            taskService.getAllByProjectUuid(uuid).tasks.first { it.number == num }
         )
     }
 
     @Test
-    fun `update should return Success when there no problem`() {
-        Mockito.`when`(userService.existsByUserName(username1))
-            .thenReturn(true)
+    fun `delete should delete task`() {
+        val num = taskService.create(username1, uuid, createTaskCommand)
 
-        val id = taskService.create(username1, projectTitle, createTaskCommand)
-        assertEquals(
-            UpdateTaskResult.Success,
-            taskService.update(
-                id,
-                UpdateTaskCommand(
-                    assignee = username1,
-                    description = "Do something",
-                    status = TaskStatus.DONE
-                )
-            )
-        )
+        taskService.delete(num, uuid)
+
+        assertFalse(taskService.existsByProjectUuidAndNumber(num, uuid))
+    }
+
+    @Test
+    fun `existByProjectUuidAndNumber should return true when task exists`() {
+        val num = taskService.create(username1, uuid, createTaskCommand)
+
+        assertTrue(taskService.existsByProjectUuidAndNumber(num, uuid))
     }
 }

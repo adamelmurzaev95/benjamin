@@ -1,27 +1,29 @@
 package benjamin.rest.projects
 
+import benjamin.projects.api.GetProjectByUuidResult
 import benjamin.projects.api.Project
 import benjamin.rest.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import com.ninjasquad.springmockk.MockkBean
+import io.mockk.every
 import org.junit.jupiter.api.Test
-import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.boot.test.mock.mockito.MockBean
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt
 import org.springframework.test.web.servlet.MockHttpServletRequestDsl
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.get
+import java.util.UUID
 
 @WebMvcTest(controllers = [ProjectsRestController::class])
 @Import(Oauth2SecurityConfig::class)
-class ProjectsRestControllerGetByTitleTest {
+class ProjectsRestControllerGetByUuidTest {
     @Autowired
     private lateinit var web: MockMvc
 
-    @MockBean
+    @MockkBean
     private lateinit var projectModel: ProjectModel
 
     private val projectJson = """
@@ -32,15 +34,20 @@ class ProjectsRestControllerGetByTitleTest {
         }
     """.trimIndent()
 
+    private val uuid = UUID.randomUUID()
+
+    private val currentUser = "adamelmurzaev95"
+
     private val project = Project(
+        uuid = uuid,
         title = "Google",
         description = "American multinational technology company",
-        author = "adamelmurzaev95"
+        author = currentUser
     )
 
     @Test
     fun `should return 401 Unauthorized when no jwt token is provided`() {
-        web.get("/projects/Google")
+        web.get("/projects/$uuid")
             .andExpect {
                 status {
                     isUnauthorized()
@@ -49,8 +56,10 @@ class ProjectsRestControllerGetByTitleTest {
     }
 
     @Test
-    fun `should return 404 Not Found when no project with such title`() {
-        web.get("/projects/Google") {
+    fun `should return 404 Not Found when no project with such uuid`() {
+        every { projectModel.getProjectByUuid(uuid, currentUser) } returns GetProjectByUuidResult.NotFound
+
+        web.get("/projects/$uuid") {
             mockJwt()
         }.andExpect {
             status {
@@ -60,11 +69,23 @@ class ProjectsRestControllerGetByTitleTest {
     }
 
     @Test
-    fun `should return 200 OK with correct body`() {
-        Mockito.`when`(projectModel.getProjectByTitle("Google"))
-            .thenReturn(project)
+    fun `should return 403 Forbidden when user doesnt have access to this project`() {
+        every { projectModel.getProjectByUuid(uuid, currentUser) } returns GetProjectByUuidResult.AccessDenied
 
-        web.get("/projects/Google") {
+        web.get("/projects/$uuid") {
+            mockJwt()
+        }.andExpect {
+            status {
+                isForbidden()
+            }
+        }
+    }
+
+    @Test
+    fun `should return 200 OK with correct body`() {
+        every { projectModel.getProjectByUuid(uuid, currentUser) } returns GetProjectByUuidResult.Success(project)
+
+        web.get("/projects/$uuid") {
             mockJwt()
         }.andExpect {
             status { isOk() }
@@ -76,5 +97,5 @@ class ProjectsRestControllerGetByTitleTest {
     }
 
     private fun MockHttpServletRequestDsl.mockJwt() =
-        with(jwt().jwt { it.claim("user_name", "adamelmurzaev95") })
+        with(jwt().jwt { it.claim("user_name", currentUser) })
 }

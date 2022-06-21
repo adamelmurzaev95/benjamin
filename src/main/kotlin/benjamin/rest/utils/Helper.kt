@@ -8,6 +8,6 @@ object Helper {
         token.getClaim<String>("user_name")
 
     fun ResponseEntity.BodyBuilder.error(message: String): ResponseEntity<Any> {
-        return body(mapOf("message" to message))
+        return body(mapOf("error" to message))
     }
 }

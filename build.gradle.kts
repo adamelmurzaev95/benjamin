@@ -39,6 +39,7 @@ dependencies {
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.mock-server:mockserver-junit-jupiter:5.11.2")
     testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("com.ninja-squad:springmockk:3.1.1")
 
     testImplementation("org.testcontainers:testcontainers:1.17.1")
     testImplementation("org.testcontainers:junit-jupiter:1.17.1")

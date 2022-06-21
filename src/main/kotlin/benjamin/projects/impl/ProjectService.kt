@@ -1,60 +1,81 @@
 package benjamin.projects.impl
 
 import benjamin.projects.api.CreateProjectCommand
-import benjamin.projects.api.CreateProjectResult
 import benjamin.projects.api.DeleteProjectResult
 import benjamin.projects.api.Project
 import benjamin.projects.api.UpdateProjectCommand
 import benjamin.projects.api.UpdateProjectResult
-import org.springframework.stereotype.Component
-import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
 
-@Component
 class ProjectService(
-    private val repo: ProjectRepository
+    private val repo: ProjectRepository,
 ) {
-    @Transactional(readOnly = true)
-    fun getByTitle(title: String): Project? {
-        val projectEntity = repo.findByTitle(title)
-        return if (projectEntity != null) fromEntity(projectEntity) else null
+    fun getByUuid(uuid: UUID): Project {
+        val projectEntity = repo.findByUuid(uuid)!!
+        return fromEntity(projectEntity)
     }
 
-    @Transactional
-    fun create(author: String, createProjectCommand: CreateProjectCommand): CreateProjectResult {
-        if (repo.existsByTitle(createProjectCommand.title)) return CreateProjectResult.AlreadyExists
-
-        repo.save(toEntity(author, createProjectCommand))
-        return CreateProjectResult.Success
+    fun create(author: String, createProjectCommand: CreateProjectCommand): UUID {
+        val savedEntity = repo.save(toEntity(author, createProjectCommand))
+        savedEntity.users.add(
+            ProjectUserEntity().apply {
+                projectId = savedEntity.id
+                username = author
+                role = ProjectRole.OWNER
+            }
+        )
+        return savedEntity.uuid
     }
 
-    @Transactional
-    fun update(title: String, updateCommand: UpdateProjectCommand): UpdateProjectResult {
-        val project = repo.findByTitle(title)
-        if (project == null) return UpdateProjectResult.NotFound
+    fun hasAccess(uuid: UUID, username: String): Boolean {
+        return repo.findByUuid(uuid)!!.users.any { it.username == username }
+    }
 
-        fillEntity(project, updateCommand)
-        repo.save(project)
+    fun getRole(uuid: UUID, username: String): ProjectRole? {
+        return repo.findByUuid(uuid)!!.users.firstOrNull { it.username == username }?.role
+    }
+
+    fun getProjectsByUsername(username: String): List<Project> {
+        return repo.findAllByUsername(username).map { fromEntity(it) }
+    }
+
+    fun update(uuid: UUID, updateCommand: UpdateProjectCommand): UpdateProjectResult {
+        val projectEntity = repo.findByUuid(uuid)!!
+
+        fillEntity(projectEntity, updateCommand)
+        repo.save(projectEntity)
 
         return UpdateProjectResult.Success
     }
 
-    @Transactional
-    fun delete(title: String): DeleteProjectResult {
-        if (!repo.existsByTitle(title)) return DeleteProjectResult.NotFound
+    fun delete(uuid: UUID): DeleteProjectResult {
+        val projectEntity = repo.findByUuid(uuid)!!
 
-        repo.deleteByTitle(title)
+        repo.delete(projectEntity)
         return DeleteProjectResult.Success
     }
 
-    @Transactional(readOnly = true)
-    fun existsByTitle(title: String) = repo.existsByTitle(title)
+    fun existsByUuid(uuid: UUID) = repo.existsByUuid(uuid)
+
+    fun addToProject(uuid: UUID, targetUsername: String, targetRole: ProjectRole) {
+        val projectEntity = repo.findByUuid(uuid)!!
+        projectEntity.users.add(
+            ProjectUserEntity().apply {
+                projectId = projectEntity.id
+                username = targetUsername
+                role = targetRole
+            }
+        )
+    }
 
     private fun fillEntity(entity: ProjectEntity, updateCommand: UpdateProjectCommand) {
+        if (updateCommand.title != null) entity.title = updateCommand.title
         if (updateCommand.description != null) entity.description = updateCommand.description
     }
 
     private fun fromEntity(projectEntity: ProjectEntity): Project {
         return Project(
+            uuid = projectEntity.uuid,
             title = projectEntity.title,
             description = projectEntity.description,
             author = projectEntity.author
@@ -63,6 +84,7 @@ class ProjectService(
 
     private fun toEntity(username: String, createProjectCommand: CreateProjectCommand): ProjectEntity {
         return ProjectEntity().apply {
+            uuid = UUID.randomUUID()
             title = createProjectCommand.title
             description = createProjectCommand.description
             author = username

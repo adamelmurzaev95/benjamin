@@ -1,0 +1,5 @@
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+ALTER TABLE projects
+ADD COLUMN uuid UUID UNIQUE NOT NULL DEFAULT uuid_generate_v4(),
+DROP CONSTRAINT projects_title_key

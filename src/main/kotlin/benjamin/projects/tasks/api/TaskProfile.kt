@@ -3,7 +3,6 @@ package benjamin.projects.tasks.api
 import java.time.Instant
 
 data class TaskProfile(
-    val id: Int,
     val title: String,
     val description: String?,
     val projectTitle: String,
@@ -11,5 +10,6 @@ data class TaskProfile(
     val assignee: String?,
     val creationDateTime: Instant,
     val changedDateTime: Instant,
-    val status: TaskStatus
+    val status: TaskStatus,
+    val number: Int
 )

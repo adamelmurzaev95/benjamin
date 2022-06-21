@@ -1,22 +1,21 @@
-package benjamin.projects.tasks.impl
+package benjamin.projects.impl
 
-import benjamin.projects.tasks.api.TaskStatus
 import org.hibernate.engine.spi.SharedSessionContractImplementor
 import org.hibernate.type.EnumType
 import java.sql.PreparedStatement
 import java.sql.ResultSet
 import java.sql.Types
 
-class TaskStatusToPostgreEnum : EnumType<TaskStatus>() {
+class ProjectRoleToPostgreEnum : EnumType<ProjectRole>() {
     override fun nullSafeGet(
         rs: ResultSet,
         names: Array<out String>,
         session: SharedSessionContractImplementor?,
         owner: Any?
-    ): TaskStatus? {
+    ): ProjectRole? {
         val enum = rs.getObject(names[0]) ?: return null
         return when (enum) {
-            is String -> TaskStatus.valueOf(enum)
+            is String -> ProjectRole.valueOf(enum)
             else -> null
         }
     }

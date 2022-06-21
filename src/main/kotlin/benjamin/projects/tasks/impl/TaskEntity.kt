@@ -17,7 +17,7 @@ import javax.persistence.Table
 @Entity
 @Table(name = "tasks")
 @TypeDef(
-    name = "pgsql_enum",
+    name = "pgsql_status_enum",
     typeClass = TaskStatusToPostgreEnum::class
 )
 class TaskEntity {
@@ -48,8 +48,11 @@ class TaskEntity {
     var assignee: String? = null
 
     @Column(name = "status")
-    @Type(type = "pgsql_enum")
+    @Type(type = "pgsql_status_enum")
     lateinit var status: TaskStatus
+
+    @Column(name = "number")
+    var number: Int? = null
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

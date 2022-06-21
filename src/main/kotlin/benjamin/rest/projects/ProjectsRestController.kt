@@ -1,9 +1,9 @@
 package benjamin.rest.projects
 
 import benjamin.projects.api.CreateProjectCommand
-import benjamin.projects.api.CreateProjectResult
 import benjamin.projects.api.DeleteProjectResult
-import benjamin.projects.api.Project
+import benjamin.projects.api.GetProjectByUuidResult
+import benjamin.projects.api.Projects
 import benjamin.projects.api.UpdateProjectCommand
 import benjamin.projects.api.UpdateProjectResult
 import benjamin.rest.models.ProjectModel
@@ -20,19 +20,28 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
 
 @RestController
 @RequestMapping("/projects")
 class ProjectsRestController(
     private val projectModel: ProjectModel
 ) {
-    @GetMapping("/{title}")
-    fun getByTitle(@PathVariable title: String): ResponseEntity<Project> {
-        val result = projectModel.getProjectByTitle(title)
+    @GetMapping
+    fun getAll(token: JwtAuthenticationToken): ResponseEntity<Projects> {
+        return ResponseEntity.ok(projectModel.getProjectsByUsername(token.getUsername()))
+    }
+
+    @GetMapping("/{uuid}")
+    fun getByUuid(@PathVariable uuid: UUID, token: JwtAuthenticationToken): ResponseEntity<Any> {
+        val result = projectModel.getProjectByUuid(uuid, token.getUsername())
 
         return when (result) {
-            null -> ResponseEntity.notFound().build()
-            else -> ResponseEntity.ok().body(result)
+            GetProjectByUuidResult.NotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .error("Project with such title not found")
+            GetProjectByUuidResult.AccessDenied -> ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .error("Access Denied")
+            is GetProjectByUuidResult.Success -> ResponseEntity.ok(result.project)
         }
     }
 
@@ -44,38 +53,36 @@ class ProjectsRestController(
         val author = token.getUsername()
         val result = projectModel.createProject(author, createProjectCommand)
 
-        return when (result) {
-            CreateProjectResult.Success -> ResponseEntity.ok().build()
-            CreateProjectResult.AlreadyExists ->
-                ResponseEntity.status(HttpStatus.CONFLICT)
-                    .error("Project with such title already exists")
-        }
+        return ResponseEntity.ok(result)
     }
 
-    @PutMapping("/{title}")
+    @PutMapping("/{uuid}")
     fun update(
-        @PathVariable title: String,
-        @RequestBody updateProjectCommand: UpdateProjectCommand
+        @PathVariable uuid: UUID,
+        @RequestBody updateProjectCommand: UpdateProjectCommand,
+        token: JwtAuthenticationToken
     ): ResponseEntity<Any> {
-        val result = projectModel.updateProject(title, updateProjectCommand)
+        val result = projectModel.updateProject(uuid, updateProjectCommand, token.getUsername())
 
         return when (result) {
             UpdateProjectResult.Success -> ResponseEntity.ok().build()
-            UpdateProjectResult.NotFound ->
-                ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .error("Project with such title not found")
+            UpdateProjectResult.NotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .error("Project with such uuid not found")
+            UpdateProjectResult.AccessDenied -> ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .error("Access Denied")
         }
     }
 
-    @DeleteMapping("/{title}")
-    fun delete(@PathVariable title: String): ResponseEntity<Any> {
-        val result = projectModel.deleteProject(title)
+    @DeleteMapping("/{uuid}")
+    fun delete(@PathVariable uuid: UUID, token: JwtAuthenticationToken): ResponseEntity<Any> {
+        val result = projectModel.deleteProject(uuid, token.getUsername())
 
         return when (result) {
             DeleteProjectResult.Success -> ResponseEntity.ok().build()
-            DeleteProjectResult.NotFound ->
-                ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .error("Project with such title not found")
+            DeleteProjectResult.NotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .error("Project with such uuid not found")
+            DeleteProjectResult.AccessDenied -> ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .error("Access Denied")
         }
     }
 }
