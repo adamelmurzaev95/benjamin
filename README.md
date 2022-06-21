@@ -8,4 +8,7 @@ Benjamin - это система управления проектами в ре
 - взаимодействие с Keycloak сервером с помощью Web Client, который внутри себя держит токен в актуальном состоянии https://github.com/adamelmurzaev95/benjamin/blob/user-service/src/main/kotlin/benjamin/common/BenjaminConfig.kt
 - настройка CI Github actions, проверка что проходят тесты
 - использования Ktlint (плагин помогающий обеспечивать единый code style на проекте)
-- поднятие контейнеров для тестов с помощью docker compose (postgres, keycloak)
+- поднятие контейнеров с помощью docker compose (postgres, keycloak)
+- использования testcontainers для интеграционных тестов
+- реализация логики для приватного доступа пользователей к проектам
+- настройка Oauth2 в Spring Security
