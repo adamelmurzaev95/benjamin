@@ -66,6 +66,12 @@ class TaskService(
         return taskRepo.existsByProjectAndNumber(projectEntity, number)
     }
 
+    fun deleteAllByProjectUuid(projectUuid: UUID) {
+        val projectEntity = projectRepo.findByUuid(projectUuid)!!
+
+        taskRepo.deleteAllByProject(projectEntity)
+    }
+
     private fun fillEntity(taskEntity: TaskEntity, updateCommand: UpdateTaskCommand) {
         if (updateCommand.description != null) taskEntity.description = updateCommand.description
         if (updateCommand.assignee != null) taskEntity.assignee = updateCommand.assignee

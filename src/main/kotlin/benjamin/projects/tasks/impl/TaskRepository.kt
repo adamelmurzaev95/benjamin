@@ -17,4 +17,6 @@ interface TaskRepository : CrudRepository<TaskEntity, Int> {
     fun deleteByProjectAndNumber(projectEntity: ProjectEntity, number: Int)
 
     fun getAllByAssigneeAndProject(assignee: String, projectEntity: ProjectEntity): List<TaskEntity>
+
+    fun deleteAllByProject(projectEntity: ProjectEntity)
 }

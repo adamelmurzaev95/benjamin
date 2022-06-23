@@ -71,6 +71,7 @@ class ProjectModel(
         if (currentUserRole == null || ProjectAuthority.DELETE_PROJECT !in currentUserRole.authorities)
             return DeleteProjectResult.AccessDenied
 
+        taskService.deleteAllByProjectUuid(uuid)
         return projectService.delete(uuid)
     }
 
