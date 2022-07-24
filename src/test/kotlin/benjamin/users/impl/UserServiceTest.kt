@@ -18,7 +18,8 @@ class UserServiceTest {
         User(
             username = "a.elmurzaev95",
             firstName = "Adam",
-            lastName = "Elmurzaev"
+            lastName = "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
     )
 

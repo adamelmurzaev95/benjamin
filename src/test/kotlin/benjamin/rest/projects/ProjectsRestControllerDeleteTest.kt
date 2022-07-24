@@ -1,7 +1,7 @@
 package benjamin.rest.projects
 
 import benjamin.projects.api.DeleteProjectResult
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito

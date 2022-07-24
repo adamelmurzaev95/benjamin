@@ -1,5 +1,7 @@
-package benjamin.rest.models
+package benjamin.rest.projects.models
 
+import benjamin.projects.api.ChangeUserRoleCommand
+import benjamin.projects.api.ChangeUserRoleResult
 import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.DeleteProjectResult
 import benjamin.projects.api.GetProjectByUuidResult
@@ -86,6 +88,26 @@ class ProjectModel(
         if (!projectService.hasAccess(projectUuid, currentUsername)) return GetTasksByProjectUuid.AccessDenied
 
         return GetTasksByProjectUuid.Success(taskService.getAllByProjectUuid(projectUuid))
+    }
+
+    @Transactional
+    fun changeRole(
+        projectUuid: UUID,
+        currentUsername: String,
+        changeUserRoleCommand: ChangeUserRoleCommand
+    ): ChangeUserRoleResult {
+        if (!projectService.existsByUuid(projectUuid)) return ChangeUserRoleResult.ProjectNotFound
+
+        val currentUserRole = projectService.getRole(projectUuid, currentUsername)
+        if (currentUserRole == null || ProjectAuthority.ASSIGN_ROLES !in currentUserRole.authorities)
+            return ChangeUserRoleResult.AccessDenied
+
+        val targetUser = changeUserRoleCommand.userName
+        if (!userService.existsByUserName(targetUser)) return ChangeUserRoleResult.TargetUserNotFound
+        if (!projectService.hasAccess(projectUuid, targetUser)) return ChangeUserRoleResult.TargetUserHasNoAccess
+
+        projectService.changeRole(projectUuid, targetUser, changeUserRoleCommand.role)
+        return ChangeUserRoleResult.Success
     }
 
     @Transactional(readOnly = true)

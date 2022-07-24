@@ -2,7 +2,7 @@ package benjamin.rest.projects
 
 import benjamin.projects.api.Project
 import benjamin.projects.api.Projects
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every

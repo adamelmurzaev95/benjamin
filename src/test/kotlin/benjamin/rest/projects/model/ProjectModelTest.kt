@@ -20,7 +20,7 @@ import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.users.api.User
 import benjamin.users.impl.UsersFetcher
 import com.ninjasquad.springmockk.MockkBean
@@ -229,7 +229,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -287,7 +288,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -308,7 +310,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -369,7 +372,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -456,7 +460,8 @@ class ProjectModelTest {
         val user = User(
             "islam95",
             "Islam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName("islam95") } returns listOf(user)
@@ -474,7 +479,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -508,7 +514,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -528,7 +535,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -550,7 +558,8 @@ class ProjectModelTest {
         val user1 = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user1)
@@ -558,7 +567,8 @@ class ProjectModelTest {
         val user2 = User(
             "islam95",
             "Islam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName("islam95") } returns listOf(user2)
@@ -578,7 +588,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -613,7 +624,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)
@@ -630,7 +642,8 @@ class ProjectModelTest {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
-            "Elmurzaev"
+            "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
 
         every { usersFetcher.fetchByUserName(createTaskCommand.assignee!!) } returns listOf(user)

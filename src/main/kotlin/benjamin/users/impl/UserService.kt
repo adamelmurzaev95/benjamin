@@ -5,4 +5,6 @@ class UserService(
 ) {
     fun existsByUserName(username: String) =
         usersFetcher.fetchByUserName(username).isNotEmpty()
+
+    fun getByUsername(username: String) = usersFetcher.fetchByUserName(username).firstOrNull()
 }

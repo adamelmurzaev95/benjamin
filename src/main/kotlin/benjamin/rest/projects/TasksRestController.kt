@@ -7,7 +7,7 @@ import benjamin.projects.tasks.api.GetTaskProfileByNumber
 import benjamin.projects.tasks.api.GetTasksByProjectUuid
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.rest.utils.Helper.error
 import benjamin.rest.utils.Helper.getUsername
 import org.springframework.http.HttpStatus

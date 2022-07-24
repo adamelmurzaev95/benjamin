@@ -33,6 +33,14 @@ services:
     ports:
       - "8082:8080"
 
+  kafka:
+    image: johnnypark/kafka-zookeeper:latest
+    environment:
+      ADVERTISED_HOST: 127.0.0.1
+    ports:
+      - "9092:9092"
+      - "2181:2181"
+
 volumes:
   postgres:
     driver: local

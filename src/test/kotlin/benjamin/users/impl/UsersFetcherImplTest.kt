@@ -32,7 +32,8 @@ class UsersFetcherImplTest(private val mockServer: ClientAndServer) {
         User(
             username = "a.elmurzaev95",
             firstName = "Adam",
-            lastName = "Elmurzaev"
+            lastName = "Elmurzaev",
+            "a.elmurzaev@gmail.com"
         )
     )
 

@@ -68,6 +68,12 @@ class ProjectService(
         )
     }
 
+    fun changeRole(uuid: UUID, username: String, projectRole: ProjectRole) {
+        val projectEntity = repo.findByUuid(uuid)!!
+
+        projectEntity.users.find { it.username == username }?.role = projectRole
+    }
+
     private fun fillEntity(entity: ProjectEntity, updateCommand: UpdateProjectCommand) {
         if (updateCommand.title != null) entity.title = updateCommand.title
         if (updateCommand.description != null) entity.description = updateCommand.description

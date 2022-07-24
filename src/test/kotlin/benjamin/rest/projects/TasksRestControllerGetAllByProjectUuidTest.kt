@@ -4,7 +4,7 @@ import benjamin.projects.tasks.api.GetTasksByProjectUuid
 import benjamin.projects.tasks.api.Task
 import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every

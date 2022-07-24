@@ -6,7 +6,7 @@ import benjamin.projects.api.GetProjectByUuidResult
 import benjamin.projects.api.Projects
 import benjamin.projects.api.UpdateProjectCommand
 import benjamin.projects.api.UpdateProjectResult
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.rest.utils.Helper.error
 import benjamin.rest.utils.Helper.getUsername
 import org.springframework.http.HttpStatus
@@ -38,7 +38,7 @@ class ProjectsRestController(
 
         return when (result) {
             GetProjectByUuidResult.NotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .error("Project with such title not found")
+                .error("Project with such uuid not found")
             GetProjectByUuidResult.AccessDenied -> ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .error("Access Denied")
             is GetProjectByUuidResult.Success -> ResponseEntity.ok(result.project)

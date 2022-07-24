@@ -5,5 +5,7 @@ enum class ProjectAuthority {
     DELETE_PROJECT,
     CREATE_TASK,
     UPDATE_TASK,
-    DELETE_TASK
+    DELETE_TASK,
+    INVITE,
+    ASSIGN_ROLES
 }

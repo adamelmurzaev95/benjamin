@@ -12,7 +12,9 @@ enum class ProjectRole(val authorities: List<ProjectAuthority>) {
             ProjectAuthority.UPDATE_PROJECT,
             ProjectAuthority.CREATE_TASK,
             ProjectAuthority.UPDATE_TASK,
-            ProjectAuthority.DELETE_TASK
+            ProjectAuthority.DELETE_TASK,
+            ProjectAuthority.INVITE,
+            ProjectAuthority.ASSIGN_ROLES
         )
     ),
     OWNER(ProjectAuthority.values().toList())

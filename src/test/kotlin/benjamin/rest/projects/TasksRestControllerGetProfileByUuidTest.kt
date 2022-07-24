@@ -3,7 +3,7 @@ package benjamin.rest.projects
 import benjamin.projects.tasks.api.GetTaskProfileByNumber
 import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
-import benjamin.rest.models.ProjectModel
+import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
