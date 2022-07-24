@@ -23,7 +23,8 @@ class UsersFetcherImplTest(private val mockServer: ClientAndServer) {
             {
                 "username": "a.elmurzaev95",
                 "firstName": "Adam",
-                "lastName": "Elmurzaev"
+                "lastName": "Elmurzaev",
+                "email": "a.elmurzaev@gmail.com"
             }
         ]
     """.trimIndent()
@@ -33,7 +34,7 @@ class UsersFetcherImplTest(private val mockServer: ClientAndServer) {
             username = "a.elmurzaev95",
             firstName = "Adam",
             lastName = "Elmurzaev",
-            "a.elmurzaev@gmail.com"
+            email = "a.elmurzaev@gmail.com"
         )
     )
 
