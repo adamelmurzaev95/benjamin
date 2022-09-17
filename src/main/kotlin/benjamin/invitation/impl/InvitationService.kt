@@ -3,12 +3,18 @@ package benjamin.invitation.impl
 import benjamin.invitation.api.Invitation
 import benjamin.invitation.api.InviteCommand
 import benjamin.projects.impl.ProjectRepository
+import org.springframework.beans.factory.annotation.Value
+import java.time.Instant
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 
 class InvitationService(
     private val repo: InvitationRepository,
     private val projectRepository: ProjectRepository
 ) {
+    @Value("expiration.seconds")
+    private var expirationSeconds: Long = 2400
+
     fun save(inviteCommand: InviteCommand, sender: String): UUID {
         val savedEntity = repo.save(toEntity(inviteCommand, sender))
 
@@ -27,6 +33,7 @@ class InvitationService(
             projectRole = inviteCommand.projectRole
             invitationUuid = UUID.randomUUID()
             project = projectRepository.findByUuid(inviteCommand.projectUuid)!!
+            expireAt = Instant.now().plus(expirationSeconds, ChronoUnit.SECONDS)
         }
     }
 
@@ -34,7 +41,8 @@ class InvitationService(
         return Invitation(
             receiver = inviteEntity.receiver,
             role = inviteEntity.projectRole,
-            projectUuid = inviteEntity.project.uuid
+            projectUuid = inviteEntity.project.uuid,
+            expireAt = inviteEntity.expireAt
         )
     }
 }

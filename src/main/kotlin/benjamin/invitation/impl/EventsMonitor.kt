@@ -10,7 +10,6 @@ import java.util.concurrent.CountDownLatch
 
 @Component
 class EventsMonitor(
-    private val countDownLatch: CountDownLatch,
     private val kafkaTemplate: KafkaTemplate<String, String>,
     invitationEventRepository: InvitationEventRepository,
 ) {
@@ -21,7 +20,7 @@ class EventsMonitor(
         findAndRegisterModules()
     }
 
-    @Scheduled(fixedDelay = 3000)
+    @Scheduled(fixedDelayString = "\${invitationsMonitor.delay}")
     fun sendEvents() {
         invitationEventService.getAll()
             .map { Pair(ProducerRecord(topic, null, it.eventId.toString(), mapper.writeValueAsString(it)), it.eventId) }
@@ -30,6 +29,5 @@ class EventsMonitor(
                 logger.info("${it.second} is sent to Kafka")
                 invitationEventService.deleteById(it.second)
             }
-        countDownLatch.countDown()
     }
 }

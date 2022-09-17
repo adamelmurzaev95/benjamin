@@ -2,6 +2,7 @@ package benjamin.rest.invitation
 
 import benjamin.invitation.api.InviteCommand
 import benjamin.invitation.api.InviteResult
+import benjamin.invitation.api.JoinResult
 import benjamin.rest.invitation.models.InvitationModel
 import benjamin.rest.utils.Helper.error
 import benjamin.rest.utils.Helper.getUsername
@@ -38,8 +39,15 @@ class InvitationController(
     }
 
     @PostMapping("/join/{linkUuid}")
-    fun join(@PathVariable linkUuid: UUID): ResponseEntity<Any> {
-        invitationModel.join(linkUuid)
-        return ResponseEntity.ok().build()
+    fun join(@PathVariable linkUuid: UUID, token: JwtAuthenticationToken): ResponseEntity<Any> {
+        return when (invitationModel.join(linkUuid, token.getUsername())) {
+            JoinResult.InvitationNotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .error("No invitation with such uuid found")
+            JoinResult.InvitationExpired -> ResponseEntity.status(HttpStatus.GONE)
+                .error("Your invitation already expired")
+            JoinResult.AccessDenied -> ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .error("Access Denied")
+            JoinResult.Success -> ResponseEntity.ok().build()
+        }
     }
 }

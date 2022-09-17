@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.servlet.support.ServletUriComponentsBuilder
+import java.time.Instant
 import java.util.UUID
 
 @Component
@@ -55,9 +56,11 @@ class InvitationModel(
     }
 
     @Transactional
-    fun join(linkUuid: UUID): JoinResult {
+    fun join(linkUuid: UUID, currentUsername: String): JoinResult {
         val invitation = invitationService.getByUuid(linkUuid)
         if (invitation == null) return JoinResult.InvitationNotFound
+        if (invitation.expireAt.isBefore(Instant.now())) return JoinResult.InvitationExpired
+        if (invitation.receiver != currentUsername) return JoinResult.AccessDenied
         projectService.addToProject(invitation.projectUuid, invitation.receiver, invitation.role)
 
         return JoinResult.Success

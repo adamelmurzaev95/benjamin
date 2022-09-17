@@ -37,11 +37,11 @@ import org.springframework.web.servlet.support.ServletUriComponentsBuilder
 import org.testcontainers.containers.KafkaContainer
 import org.testcontainers.utility.DockerImageName
 import java.time.Duration
+import java.time.Instant
 import java.util.UUID
-import java.util.concurrent.CountDownLatch
 
 @SpringBootTest(
-    properties = [TestContainerPostgres.url]
+    properties = [TestContainerPostgres.url, "invitationsMonitor.delay=10"]
 )
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @ContextConfiguration(initializers = [InvitationProcessTest.Initializer::class])
@@ -72,10 +72,10 @@ class InvitationProcessTest {
     ).createConsumer()
 
     @Autowired
-    private lateinit var countDownLatch: CountDownLatch
+    private lateinit var projectRepository: ProjectRepository
 
     @Autowired
-    private lateinit var projectRepository: ProjectRepository
+    private lateinit var invitationRepository: InvitationRepository
 
     @Autowired
     private lateinit var web: MockMvc
@@ -140,13 +140,10 @@ class InvitationProcessTest {
                 .any { user -> user.username == invitationReceiver.username }
         )
 
-        countDownLatch.await()
-
         consumer().use { consumer ->
             val topic = "BENJAMIN.EMAIL"
             consumer.subscribe(listOf(topic))
-            val records = consumer.poll(Duration.ofSeconds(1)).records(topic)
-
+            val records = consumer.poll(Duration.ofSeconds(2)).records(topic)
             val actual = records
                 .map { it.value() }
                 .map { objectMapper.readValue<InvitationEvent>(it) }
@@ -160,20 +157,37 @@ class InvitationProcessTest {
             )
 
             assertEquals(expected, actual)
-
-            web.post("/invitation/join/$invitationUuid") {
-                mockJwt(invitationReceiver.username)
-            }.andExpect {
-                status {
-                    isOk()
-                }
-            }
-
-            assertTrue(
-                projectRepository.findByUuid(projectEntity.uuid)!!.users
-                    .any { user -> user.username == invitationReceiver.username }
-            )
         }
+
+        web.post("/invitation/join/$invitationUuid") {
+            mockJwt(invitationReceiver.username)
+        }.andExpect {
+            status {
+                isOk()
+            }
+        }
+
+        assertTrue(
+            projectRepository.findByUuid(projectEntity.uuid)!!.users
+                .any { user -> user.username == invitationReceiver.username }
+        )
+    }
+
+    @Test
+    fun `invitation expired case test`() {
+        val invitationUuid = invitationRepository.createInvitation()
+        web.post("/invitation/join/$invitationUuid") {
+            mockJwt(invitationReceiver.username)
+        }.andExpect {
+            status {
+                isGone()
+            }
+        }
+
+        assertFalse(
+            projectRepository.findByUuid(projectEntity.uuid)!!.users
+                .any { user -> user.username == invitationReceiver.username }
+        )
     }
 
     private fun MockHttpServletRequestDsl.mockJwt(username: String) =
@@ -183,6 +197,19 @@ class InvitationProcessTest {
         every { fetchByUserName(invitationReceiver.username) } returns listOf(invitationReceiver)
     }
 
+    private fun InvitationRepository.createInvitation(): UUID {
+        val uuid = UUID.randomUUID()
+        save(InvitationEntity().apply {
+            sender = currentUser
+            receiver = invitationReceiver.username
+            project = projectRepository.findByUuid(projectEntity.uuid)!!
+            projectRole = ProjectRole.USER
+            invitationUuid = uuid
+            expireAt = Instant.now().minusSeconds(100)
+        })
+        return uuid
+    }
+
     private fun buildMessage(
         receiver: User,
         sender: String,
@@ -190,9 +217,9 @@ class InvitationProcessTest {
         linkUuid: String
     ): String {
         return "Dear ${receiver.firstName}. $sender invites you to ${project.title} project. If you want to join follow the link ${
-        buildUrl(
-            linkUuid
-        )
+            buildUrl(
+                linkUuid
+            )
         }"
     }
 

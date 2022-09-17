@@ -5,6 +5,7 @@ import benjamin.projects.impl.ProjectRole
 import benjamin.projects.impl.ProjectRoleToPostgreEnum
 import org.hibernate.annotations.Type
 import org.hibernate.annotations.TypeDef
+import java.time.Instant
 import java.util.UUID
 import javax.persistence.Column
 import javax.persistence.Entity
@@ -44,6 +45,9 @@ class InvitationEntity {
     @Column(name = "invitation_uuid")
     @Type(type = "pg-uuid")
     lateinit var invitationUuid: UUID
+
+    @Column(name = "expiration_date")
+    lateinit var expireAt: Instant
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true

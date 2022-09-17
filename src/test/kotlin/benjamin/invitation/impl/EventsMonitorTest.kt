@@ -70,7 +70,7 @@ class EventsMonitorTest {
         consumer().use { consumer ->
             val topic = "BENJAMIN.EMAIL"
             consumer.subscribe(listOf(topic))
-            EventsMonitor(CountDownLatch(1), kafkaTemplate, invitationEventRepository).sendEvents()
+            EventsMonitor(kafkaTemplate, invitationEventRepository).sendEvents()
 
             val records = consumer.poll(Duration.ofSeconds(1)).records(topic)
 
