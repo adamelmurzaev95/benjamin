@@ -199,14 +199,16 @@ class InvitationProcessTest {
 
     private fun InvitationRepository.createInvitation(): UUID {
         val uuid = UUID.randomUUID()
-        save(InvitationEntity().apply {
-            sender = currentUser
-            receiver = invitationReceiver.username
-            project = projectRepository.findByUuid(projectEntity.uuid)!!
-            projectRole = ProjectRole.USER
-            invitationUuid = uuid
-            expireAt = Instant.now().minusSeconds(100)
-        })
+        save(
+            InvitationEntity().apply {
+                sender = currentUser
+                receiver = invitationReceiver.username
+                project = projectRepository.findByUuid(projectEntity.uuid)!!
+                projectRole = ProjectRole.USER
+                invitationUuid = uuid
+                expireAt = Instant.now().minusSeconds(100)
+            }
+        )
         return uuid
     }
 
@@ -217,9 +219,9 @@ class InvitationProcessTest {
         linkUuid: String
     ): String {
         return "Dear ${receiver.firstName}. $sender invites you to ${project.title} project. If you want to join follow the link ${
-            buildUrl(
-                linkUuid
-            )
+        buildUrl(
+            linkUuid
+        )
         }"
     }
 
