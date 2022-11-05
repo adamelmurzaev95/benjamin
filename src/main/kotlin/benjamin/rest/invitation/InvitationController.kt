@@ -4,8 +4,8 @@ import benjamin.invitation.api.InviteCommand
 import benjamin.invitation.api.InviteResult
 import benjamin.invitation.api.JoinResult
 import benjamin.rest.invitation.models.InvitationModel
-import benjamin.rest.utils.Helper.error
-import benjamin.rest.utils.Helper.getUsername
+import benjamin.rest.utils.WebHelper.error
+import benjamin.rest.utils.WebHelper.getUsername
 import org.springframework.http.HttpStatus
 import org.springframework.http.ResponseEntity
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken
@@ -24,14 +24,9 @@ class InvitationController(
     @PostMapping("/invite")
     fun invite(@RequestBody inviteCommand: InviteCommand, token: JwtAuthenticationToken): ResponseEntity<Any> {
         val result = invitationModel.invite(inviteCommand, token.getUsername())
-
         return when (result) {
-            InviteResult.ProjectNotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .error("Project with such uuid not found")
             InviteResult.ReceiverNotFound -> ResponseEntity.status(HttpStatus.NOT_FOUND)
                 .error("Receiver with such username not found")
-            InviteResult.AccessDenied -> ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .error("Access Denied")
             InviteResult.AlreadyHasAccess -> ResponseEntity.status(HttpStatus.CONFLICT)
                 .error("This receiver already has access")
             is InviteResult.Success -> ResponseEntity.ok(result.uuid)

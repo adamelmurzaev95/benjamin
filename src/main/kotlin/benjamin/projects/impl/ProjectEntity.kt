@@ -13,6 +13,39 @@ import javax.persistence.JoinColumn
 import javax.persistence.OneToMany
 import javax.persistence.Table
 
+enum class ProjectAuthority {
+    SEE_PROJECT,
+    UPDATE_PROJECT,
+    DELETE_PROJECT,
+    CREATE_TASK,
+    UPDATE_TASK,
+    DELETE_TASK,
+    INVITE,
+    ASSIGN_ROLES
+}
+
+enum class ProjectRole(val authorities: List<ProjectAuthority>) {
+    USER(
+        listOf(
+            ProjectAuthority.SEE_PROJECT,
+            ProjectAuthority.CREATE_TASK,
+            ProjectAuthority.UPDATE_TASK
+        )
+    ),
+    ADMIN(
+        listOf(
+            ProjectAuthority.SEE_PROJECT,
+            ProjectAuthority.UPDATE_PROJECT,
+            ProjectAuthority.CREATE_TASK,
+            ProjectAuthority.UPDATE_TASK,
+            ProjectAuthority.DELETE_TASK,
+            ProjectAuthority.INVITE,
+            ProjectAuthority.ASSIGN_ROLES
+        )
+    ),
+    OWNER(ProjectAuthority.values().toList())
+}
+
 @Entity
 @Table(name = "projects")
 class ProjectEntity {
