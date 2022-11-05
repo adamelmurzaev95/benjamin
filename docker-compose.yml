@@ -7,6 +7,8 @@ services:
       POSTGRES_DATABASE: benjamin
     ports:
       - "6543:5432"
+    volumes:
+      - benjamin-volume:/data/postgres
 
   keycloak-postgres:
     image: postgres:alpine
@@ -43,4 +45,6 @@ services:
 
 volumes:
   postgres:
+    driver: local
+  benjamin-volume:
     driver: local
