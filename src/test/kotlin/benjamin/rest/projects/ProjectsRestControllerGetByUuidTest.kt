@@ -1,9 +1,10 @@
 package benjamin.rest.projects
 
-import benjamin.projects.api.GetProjectByUuidResult
 import benjamin.projects.api.Project
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -57,7 +58,7 @@ class ProjectsRestControllerGetByUuidTest {
 
     @Test
     fun `should return 404 Not Found when no project with such uuid`() {
-        every { projectModel.getProjectByUuid(uuid, currentUser) } returns GetProjectByUuidResult.NotFound
+        every { projectModel.getProjectByUuid(uuid, currentUser) } throws ProjectNotFoundException("Project not found")
 
         web.get("/projects/$uuid") {
             mockJwt()
@@ -70,7 +71,7 @@ class ProjectsRestControllerGetByUuidTest {
 
     @Test
     fun `should return 403 Forbidden when user doesnt have access to this project`() {
-        every { projectModel.getProjectByUuid(uuid, currentUser) } returns GetProjectByUuidResult.AccessDenied
+        every { projectModel.getProjectByUuid(uuid, currentUser) } throws ProjectAccessDeniedException("Access denied")
 
         web.get("/projects/$uuid") {
             mockJwt()
@@ -83,7 +84,7 @@ class ProjectsRestControllerGetByUuidTest {
 
     @Test
     fun `should return 200 OK with correct body`() {
-        every { projectModel.getProjectByUuid(uuid, currentUser) } returns GetProjectByUuidResult.Success(project)
+        every { projectModel.getProjectByUuid(uuid, currentUser) } returns project
 
         web.get("/projects/$uuid") {
             mockJwt()

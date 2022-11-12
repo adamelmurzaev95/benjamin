@@ -2,18 +2,13 @@ package benjamin.rest.projects.model
 
 import benjamin.TestContainerPostgres
 import benjamin.projects.api.CreateProjectCommand
-import benjamin.projects.api.DeleteProjectResult
-import benjamin.projects.api.GetProjectByUuidResult
 import benjamin.projects.api.Project
 import benjamin.projects.api.Projects
 import benjamin.projects.api.UpdateProjectCommand
-import benjamin.projects.api.UpdateProjectResult
 import benjamin.projects.tasks.api.CreateTaskCommand
 import benjamin.projects.tasks.api.CreateTaskResult
 import benjamin.projects.tasks.api.DeleteTaskResult
 import benjamin.projects.tasks.api.GetTaskProfileByNumber
-import benjamin.projects.tasks.api.GetTasksByAssigneeUserAndProjectUuid
-import benjamin.projects.tasks.api.GetTasksByProjectUuid
 import benjamin.projects.tasks.api.Task
 import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
@@ -21,23 +16,35 @@ import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
 import benjamin.rest.projects.models.ProjectModel
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectChecksAspect
+import benjamin.security.ProjectNotFoundException
+import benjamin.security.SecurityUtils
 import benjamin.users.api.User
 import benjamin.users.impl.UsersFetcher
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
+import io.mockk.mockkObject
+import io.mockk.unmockkObject
+import org.junit.jupiter.api.AfterAll
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
+import org.junit.jupiter.api.BeforeAll
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
+import org.springframework.context.annotation.EnableAspectJAutoProxy
 import org.springframework.context.annotation.Import
 import java.time.Instant
 import java.util.UUID
 
 @DataJpaTest(properties = [TestContainerPostgres.url])
+@EnableAspectJAutoProxy
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Import(ProjectModel::class)
+@Import(ProjectModel::class, ProjectChecksAspect::class)
 class ProjectModelTest {
     @Autowired
     private lateinit var projectModel: ProjectModel
@@ -68,22 +75,36 @@ class ProjectModelTest {
 
     private val projectAuthor = "a.elmurzaev95"
 
-    @Test
-    fun `getProjectByUuid should return not found when project with such uuid doesnt exist`() {
-        assertEquals(
-            GetProjectByUuidResult.NotFound,
-            projectModel.getProjectByUuid(UUID.randomUUID(), projectAuthor)
-        )
+    companion object {
+        @BeforeAll
+        @JvmStatic
+        fun beforeAll() {
+            mockkObject(SecurityUtils)
+        }
+
+        @AfterAll
+        @JvmStatic
+        fun afterAll() {
+            unmockkObject(SecurityUtils)
+        }
+    }
+
+    @BeforeEach
+    fun mockSecurityUtils() {
+        every { SecurityUtils.getCurrentUsername() } returns projectAuthor
     }
 
     @Test
-    fun `getProjectByUuid should return access denied when current user doesnt have access`() {
+    fun `getProjectByUuid should throw not found when project with such uuid doesnt exist`() {
+        assertThrows<ProjectNotFoundException> { projectModel.getProjectByUuid(UUID.randomUUID(), "i.andrianov") }
+    }
+
+    @Test
+    fun `getProjectByUuid should throw access denied when current user doesnt have access`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
 
-        assertEquals(
-            GetProjectByUuidResult.AccessDenied,
-            projectModel.getProjectByUuid(projectUuid, "i.andrianov")
-        )
+        every { SecurityUtils.getCurrentUsername() } returns "i.andrianov"
+        assertThrows<ProjectAccessDeniedException> { projectModel.getProjectByUuid(projectUuid, "i.andrianov") }
     }
 
     @Test
@@ -99,12 +120,7 @@ class ProjectModelTest {
 
         val actual = projectModel.getProjectByUuid(projectUuid, projectAuthor)
 
-        assert(actual is GetProjectByUuidResult.Success)
-
-        assertEquals(
-            expected,
-            (actual as GetProjectByUuidResult.Success).project
-        )
+        assertEquals(expected, actual)
     }
 
     @Test
@@ -120,63 +136,54 @@ class ProjectModelTest {
 
         val actual = projectModel.getProjectByUuid(projectUuid, projectAuthor)
 
-        assertEquals(
-            expected,
-            (actual as GetProjectByUuidResult.Success).project
-        )
+        assertEquals(expected, actual)
     }
 
     @Test
-    fun `updateProject should return not found if project doesnt exist`() {
-        assertEquals(
-            UpdateProjectResult.NotFound,
+    fun `updateProject should throw not found if project doesnt exist`() {
+        assertThrows<ProjectNotFoundException> {
             projectModel.updateProject(UUID.randomUUID(), updateProjectCommand, projectAuthor)
-        )
+        }
     }
 
     @Test
-    fun `updateProject should return access denied if user doesnt have access`() {
+    fun `updateProject should throw access denied if user doesnt have access`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
 
-        assertEquals(
-            UpdateProjectResult.AccessDenied,
+        every { SecurityUtils.getCurrentUsername() } returns "islam"
+        assertThrows<ProjectAccessDeniedException> {
             projectModel.updateProject(projectUuid, updateProjectCommand, "islam")
-        )
+        }
     }
 
     @Test
     fun `updateProject should update correctly`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
 
-        assertEquals(
-            UpdateProjectResult.Success,
-            projectModel.updateProject(projectUuid, updateProjectCommand, projectAuthor)
-        )
+        projectModel.updateProject(projectUuid, updateProjectCommand, projectAuthor)
 
-        assertEquals(
-            (projectModel.getProjectByUuid(projectUuid, projectAuthor) as GetProjectByUuidResult.Success).project.title,
-            "Benjamin"
-        )
+        assertEquals(projectModel.getProjectByUuid(projectUuid, projectAuthor).title, "Benjamin")
     }
 
     @Test
-    fun `deleteProject should return not found if project doesnt exist`() {
-        assertEquals(DeleteProjectResult.NotFound, projectModel.deleteProject(UUID.randomUUID(), projectAuthor))
+    fun `deleteProject should throw not found if project doesnt exist`() {
+        assertThrows<ProjectNotFoundException> { projectModel.deleteProject(UUID.randomUUID(), projectAuthor) }
     }
 
     @Test
-    fun `deleteProject should return access denied if user doesnt have access`() {
+    fun `deleteProject should throw access denied if user doesnt have access`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
 
-        assertEquals(DeleteProjectResult.AccessDenied, projectModel.deleteProject(projectUuid, "islam"))
+        every { SecurityUtils.getCurrentUsername() } returns "islam"
+        assertThrows<ProjectAccessDeniedException> { projectModel.deleteProject(projectUuid, "islam") }
     }
 
     @Test
-    fun `deleteProject should return success and delete project`() {
+    fun `deleteProject should delete project`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
+        projectModel.deleteProject(projectUuid, projectAuthor)
 
-        assertEquals(DeleteProjectResult.Success, projectModel.deleteProject(projectUuid, projectAuthor))
-        assertEquals(GetProjectByUuidResult.NotFound, projectModel.getProjectByUuid(projectUuid, projectAuthor))
+        assertThrows<ProjectNotFoundException> { projectModel.getProjectByUuid(projectUuid, projectAuthor) }
     }
 
     @Test
@@ -207,21 +214,16 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `getAllTasksByProjectUuid should return ProjectNotFound when no such project exists`() {
-        assertEquals(
-            GetTasksByProjectUuid.ProjectNotFound,
-            projectModel.getAllTasksByProjectUuid(UUID.randomUUID(), "adam")
-        )
+    fun `getAllTasksByProjectUuid should throw ProjectNotFound when no such project exists`() {
+        assertThrows<ProjectNotFoundException> { projectModel.getAllTasksByProjectUuid(UUID.randomUUID(), "adam") }
     }
 
     @Test
-    fun `getAllTasksByProjectUuid should return access denied when used doesnt have access to this project`() {
+    fun `getAllTasksByProjectUuid should throw access denied when used doesnt have access to this project`() {
         val projectUuid1 = projectModel.createProject(projectAuthor, createProjectCommand)
 
-        assertEquals(
-            GetTasksByProjectUuid.AccessDenied,
-            projectModel.getAllTasksByProjectUuid(projectUuid1, "adam")
-        )
+        every { SecurityUtils.getCurrentUsername() } returns "adam"
+        assertThrows<ProjectAccessDeniedException> { projectModel.getAllTasksByProjectUuid(projectUuid1, "adam") }
     }
 
     @Test
@@ -259,18 +261,12 @@ class ProjectModelTest {
 
         val actual = projectModel.getAllTasksByProjectUuid(projectUuid, projectAuthor)
 
-        assertEquals(
-            expected,
-            (actual as GetTasksByProjectUuid.Success).tasks
-        )
+        assertEquals(expected, actual)
     }
 
     @Test
-    fun `getTaskProfileByNumber should return ProjectNotFound when no such project exists`() {
-        assertEquals(
-            GetTaskProfileByNumber.ProjectNotFound,
-            projectModel.getTaskProfileByNumber(1, UUID.randomUUID(), projectAuthor)
-        )
+    fun `getTaskProfileByNumber should throw ProjectNotFound when no such project exists`() {
+        assertThrows<ProjectNotFoundException> { projectModel.getTaskProfileByNumber(1, UUID.randomUUID(), projectAuthor) }
     }
 
     @Test
@@ -284,7 +280,7 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `getTaskProfileByNumber should return AccessDenied when user doesnt have access to this project`() {
+    fun `getTaskProfileByNumber should throw AccessDenied when user doesnt have access to this project`() {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
@@ -297,10 +293,9 @@ class ProjectModelTest {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
         val taskNum =
             (projectModel.createTask(projectAuthor, projectUuid, createTaskCommand) as CreateTaskResult.Success).taskNum
-        assertEquals(
-            GetTaskProfileByNumber.AccessDenied,
-            projectModel.getTaskProfileByNumber(taskNum, projectUuid, "islam")
-        )
+
+        every { SecurityUtils.getCurrentUsername() } returns "islam"
+        assertThrows<ProjectAccessDeniedException> { projectModel.getTaskProfileByNumber(taskNum, projectUuid, "islam") }
     }
 
     @Test
@@ -351,20 +346,15 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `getTasksByAssigneeAndProjectUuid should return ProjectNotFound when no such project exists`() {
-        assertEquals(
-            GetTasksByAssigneeUserAndProjectUuid.ProjectNotFound,
-            projectModel.getTasksByAssigneeAndProjectUuid(projectAuthor, UUID.randomUUID())
-        )
+    fun `getTasksByAssigneeAndProjectUuid should throw ProjectNotFound when no such project exists`() {
+        assertThrows<ProjectNotFoundException> { projectModel.getTasksByAssigneeAndProjectUuid(projectAuthor, UUID.randomUUID()) }
     }
 
     @Test
-    fun `getTasksByAssigneeAndProjectUuid should return access denied when user doesnt have access to this project`() {
+    fun `getTasksByAssigneeAndProjectUuid should throw access denied when user doesnt have access to this project`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
-        assertEquals(
-            GetTasksByAssigneeUserAndProjectUuid.AccessDenied,
-            projectModel.getTasksByAssigneeAndProjectUuid("islam", projectUuid)
-        )
+        every { SecurityUtils.getCurrentUsername() } returns "islam"
+        assertThrows<ProjectAccessDeniedException> { projectModel.getTasksByAssigneeAndProjectUuid("islam", projectUuid) }
     }
 
     @Test
@@ -404,10 +394,7 @@ class ProjectModelTest {
 
         val actual1 = projectModel.getTasksByAssigneeAndProjectUuid(projectAuthor, projectUuid)
 
-        assertEquals(
-            expected1,
-            (actual1 as GetTasksByAssigneeUserAndProjectUuid.Success).tasks
-        )
+        assertEquals(expected1, actual1)
 
         val expected2 = Tasks(
             tasks = listOf(
@@ -422,25 +409,20 @@ class ProjectModelTest {
 
         val actual2 = projectModel.getTasksByAssigneeAndProjectUuid(projectAuthor, projectUuid2)
 
-        assertEquals(expected2, (actual2 as GetTasksByAssigneeUserAndProjectUuid.Success).tasks)
+        assertEquals(expected2, actual2)
     }
 
     @Test
-    fun `createTask should return ProjectNotFound when no such project exists`() {
-        assertEquals(
-            CreateTaskResult.ProjectNotFound,
-            projectModel.createTask(projectAuthor, UUID.randomUUID(), createTaskCommand)
-        )
+    fun `createTask should throw ProjectNotFound when no such project exists`() {
+        assertThrows<ProjectNotFoundException> { projectModel.createTask(projectAuthor, UUID.randomUUID(), createTaskCommand) }
     }
 
     @Test
-    fun `createTask should return AccessDenied when user doesnt have access to this project`() {
+    fun `createTask should throw AccessDenied when user doesnt have access to this project`() {
         val projectUuid = projectModel.createProject(projectAuthor, createProjectCommand)
 
-        assertEquals(
-            CreateTaskResult.AccessDenied,
-            projectModel.createTask("islam95", projectUuid, createTaskCommand)
-        )
+        every { SecurityUtils.getCurrentUsername() } returns "islam95"
+        assertThrows<ProjectAccessDeniedException> { projectModel.createTask("islam95", projectUuid, createTaskCommand) }
     }
 
     @Test
@@ -492,11 +474,8 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `updateTask should return ProjectNotFound when no such project exists`() {
-        assertEquals(
-            UpdateTaskResult.ProjectNotFound,
-            projectModel.updateTask(1, UUID.randomUUID(), projectAuthor, updateTaskCommand)
-        )
+    fun `updateTask should throw ProjectNotFound when no such project exists`() {
+        assertThrows<ProjectNotFoundException> { projectModel.updateTask(1, UUID.randomUUID(), projectAuthor, updateTaskCommand) }
     }
 
     @Test
@@ -510,7 +489,7 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `updateTask should return AccessDenied when user doesnt have access to this project`() {
+    fun `updateTask should throw AccessDenied when user doesnt have access to this project`() {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
@@ -524,10 +503,8 @@ class ProjectModelTest {
         val taskNum =
             (projectModel.createTask(projectAuthor, projectUuid, createTaskCommand) as CreateTaskResult.Success).taskNum
 
-        assertEquals(
-            UpdateTaskResult.AccessDenied,
-            projectModel.updateTask(taskNum, projectUuid, "islam95", updateTaskCommand)
-        )
+        every { SecurityUtils.getCurrentUsername() } returns "islam95"
+        assertThrows<ProjectAccessDeniedException> { projectModel.updateTask(taskNum, projectUuid, "islam95", updateTaskCommand) }
     }
 
     @Test
@@ -605,11 +582,8 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `deleteTask should return ProjectNotFound when no such project exist`() {
-        assertEquals(
-            DeleteTaskResult.ProjectNotFound,
-            projectModel.deleteTask(1, UUID.randomUUID(), projectAuthor)
-        )
+    fun `deleteTask should throw ProjectNotFound when no such project exist`() {
+        assertThrows<ProjectNotFoundException> { projectModel.deleteTask(1, UUID.randomUUID(), projectAuthor) }
     }
 
     @Test
@@ -620,7 +594,7 @@ class ProjectModelTest {
     }
 
     @Test
-    fun `deleteTask should return AccessDenied when user doesnt have access to this project`() {
+    fun `deleteTask should throw AccessDenied when user doesnt have access to this project`() {
         val user = User(
             createTaskCommand.assignee!!,
             "Adam",
@@ -634,7 +608,8 @@ class ProjectModelTest {
         val taskNum =
             (projectModel.createTask(projectAuthor, projectUuid, createTaskCommand) as CreateTaskResult.Success).taskNum
 
-        assertEquals(DeleteTaskResult.AccessDenied, projectModel.deleteTask(taskNum, projectUuid, "islam"))
+        every { SecurityUtils.getCurrentUsername() } returns "islam"
+        assertThrows<ProjectAccessDeniedException> { projectModel.deleteTask(taskNum, projectUuid, "islam") }
     }
 
     @Test
