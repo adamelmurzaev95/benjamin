@@ -2,13 +2,11 @@ package benjamin.projects.tasks.impl
 
 import benjamin.projects.impl.ProjectRepository
 import benjamin.projects.tasks.api.CreateTaskCommand
-import benjamin.projects.tasks.api.DeleteTaskResult
 import benjamin.projects.tasks.api.Task
 import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
-import benjamin.projects.tasks.api.UpdateTaskResult
 import java.time.Instant
 import java.util.UUID
 
@@ -42,22 +40,17 @@ class TaskService(
         return savedEntity.number!!
     }
 
-    fun update(number: Int, projectUuid: UUID, updateCommand: UpdateTaskCommand): UpdateTaskResult {
+    fun update(number: Int, projectUuid: UUID, updateCommand: UpdateTaskCommand) {
         val projectEntity = projectRepo.findByUuid(projectUuid)!!
         val taskEntity = taskRepo.findByProjectAndNumber(projectEntity, number)
 
         fillEntity(taskEntity, updateCommand)
         taskRepo.save(taskEntity)
-
-        return UpdateTaskResult.Success
     }
 
-    fun delete(number: Int, projectUuid: UUID): DeleteTaskResult {
+    fun delete(number: Int, projectUuid: UUID) {
         val projectEntity = projectRepo.findByUuid(projectUuid)!!
-
         taskRepo.deleteByProjectAndNumber(projectEntity, number)
-
-        return DeleteTaskResult.Success
     }
 
     fun existsByProjectUuidAndNumber(number: Int, projectUuid: UUID): Boolean {

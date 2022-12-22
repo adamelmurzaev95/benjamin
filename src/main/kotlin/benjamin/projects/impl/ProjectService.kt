@@ -1,10 +1,8 @@
 package benjamin.projects.impl
 
 import benjamin.projects.api.CreateProjectCommand
-import benjamin.projects.api.DeleteProjectResult
 import benjamin.projects.api.Project
 import benjamin.projects.api.UpdateProjectCommand
-import benjamin.projects.api.UpdateProjectResult
 import java.util.UUID
 
 class ProjectService(
@@ -39,20 +37,16 @@ class ProjectService(
         return repo.findAllByUsername(username).map { fromEntity(it) }
     }
 
-    fun update(uuid: UUID, updateCommand: UpdateProjectCommand): UpdateProjectResult {
+    fun update(uuid: UUID, updateCommand: UpdateProjectCommand) {
         val projectEntity = repo.findByUuid(uuid)!!
 
         fillEntity(projectEntity, updateCommand)
         repo.save(projectEntity)
-
-        return UpdateProjectResult.Success
     }
 
-    fun delete(uuid: UUID): DeleteProjectResult {
+    fun delete(uuid: UUID) {
         val projectEntity = repo.findByUuid(uuid)!!
-
         repo.delete(projectEntity)
-        return DeleteProjectResult.Success
     }
 
     fun existsByUuid(uuid: UUID) = repo.existsByUuid(uuid)

@@ -3,6 +3,8 @@ package benjamin.rest.projects
 import benjamin.projects.tasks.api.DeleteTaskResult
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -40,7 +42,7 @@ class TasksRestControllerDeleteTest {
 
     @Test
     fun `should return 404 NotFound when no such project exists`() {
-        every { projectModel.deleteTask(1, projectUuid, currentUser) } returns DeleteTaskResult.ProjectNotFound
+        every { projectModel.deleteTask(1, projectUuid, currentUser) } throws ProjectNotFoundException("Project not found")
 
         web.delete("/projects/$projectUuid/tasks/1") {
             mockJwt()
@@ -66,7 +68,7 @@ class TasksRestControllerDeleteTest {
 
     @Test
     fun `should return 403 Forbidden when user doesnt have access to this project`() {
-        every { projectModel.deleteTask(1, projectUuid, currentUser) } returns DeleteTaskResult.AccessDenied
+        every { projectModel.deleteTask(1, projectUuid, currentUser) } throws ProjectAccessDeniedException("Access denied")
 
         web.delete("/projects/$projectUuid/tasks/1") {
             mockJwt()

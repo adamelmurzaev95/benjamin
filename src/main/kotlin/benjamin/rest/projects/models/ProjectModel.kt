@@ -3,11 +3,8 @@ package benjamin.rest.projects.models
 import benjamin.projects.api.ChangeUserRoleCommand
 import benjamin.projects.api.ChangeUserRoleResult
 import benjamin.projects.api.CreateProjectCommand
-import benjamin.projects.api.DeleteProjectResult
-import benjamin.projects.api.GetProjectByUuidResult
 import benjamin.projects.api.Projects
 import benjamin.projects.api.UpdateProjectCommand
-import benjamin.projects.api.UpdateProjectResult
 import benjamin.projects.impl.ProjectAuthority
 import benjamin.projects.impl.ProjectRepository
 import benjamin.projects.impl.ProjectService
@@ -15,12 +12,11 @@ import benjamin.projects.tasks.api.CreateTaskCommand
 import benjamin.projects.tasks.api.CreateTaskResult
 import benjamin.projects.tasks.api.DeleteTaskResult
 import benjamin.projects.tasks.api.GetTaskProfileByNumber
-import benjamin.projects.tasks.api.GetTasksByAssigneeUserAndProjectUuid
-import benjamin.projects.tasks.api.GetTasksByProjectUuid
 import benjamin.projects.tasks.api.UpdateTaskCommand
 import benjamin.projects.tasks.api.UpdateTaskResult
 import benjamin.projects.tasks.impl.TaskRepository
 import benjamin.projects.tasks.impl.TaskService
+import benjamin.security.ProjectChecks
 import benjamin.users.impl.UserService
 import benjamin.users.impl.UsersFetcher
 import org.springframework.stereotype.Component
@@ -38,43 +34,31 @@ class ProjectModel(
     private val userService = UserService(usersFetcher)
 
     @Transactional(readOnly = true)
-    fun getProjectByUuid(uuid: UUID, currentUsername: String): GetProjectByUuidResult {
-        if (!projectService.existsByUuid(uuid)) return GetProjectByUuidResult.NotFound
-        if (!projectService.hasAccess(uuid, currentUsername)) return GetProjectByUuidResult.AccessDenied
-
-        return GetProjectByUuidResult.Success(projectService.getByUuid(uuid))
-    }
-
-    @Transactional
-    fun createProject(author: String, createProjectCommand: CreateProjectCommand): UUID {
-        return projectService.create(author, createProjectCommand)
-    }
+    @ProjectChecks(projectUuidPath = "uuid")
+    fun getProjectByUuid(
+        uuid: UUID,
+        currentUsername: String
+    ) = projectService.getByUuid(uuid)
 
     @Transactional
+    fun createProject(
+        author: String,
+        createProjectCommand: CreateProjectCommand
+    ) = projectService.create(author, createProjectCommand)
+
+    @Transactional
+    @ProjectChecks(projectUuidPath = "uuid", requiredAuthority = ProjectAuthority.UPDATE_PROJECT)
     fun updateProject(
         uuid: UUID,
         updateProjectCommand: UpdateProjectCommand,
         currentUsername: String
-    ): UpdateProjectResult {
-        if (!projectService.existsByUuid(uuid)) return UpdateProjectResult.NotFound
-
-        val currentUserRole = projectService.getRole(uuid, currentUsername)
-        if (currentUserRole == null || ProjectAuthority.UPDATE_PROJECT !in currentUserRole.authorities)
-            return UpdateProjectResult.AccessDenied
-
-        return projectService.update(uuid, updateProjectCommand)
-    }
+    ) = projectService.update(uuid, updateProjectCommand)
 
     @Transactional
-    fun deleteProject(uuid: UUID, currentUsername: String): DeleteProjectResult {
-        if (!projectService.existsByUuid(uuid)) return DeleteProjectResult.NotFound
-
-        val currentUserRole = projectService.getRole(uuid, currentUsername)
-        if (currentUserRole == null || ProjectAuthority.DELETE_PROJECT !in currentUserRole.authorities)
-            return DeleteProjectResult.AccessDenied
-
+    @ProjectChecks(projectUuidPath = "uuid", requiredAuthority = ProjectAuthority.DELETE_PROJECT)
+    fun deleteProject(uuid: UUID, currentUsername: String) {
         taskService.deleteAllByProjectUuid(uuid)
-        return projectService.delete(uuid)
+        projectService.delete(uuid)
     }
 
     @Transactional(readOnly = true)
@@ -83,104 +67,120 @@ class ProjectModel(
     }
 
     @Transactional(readOnly = true)
-    fun getAllTasksByProjectUuid(projectUuid: UUID, currentUsername: String): GetTasksByProjectUuid {
-        if (!projectService.existsByUuid(projectUuid)) return GetTasksByProjectUuid.ProjectNotFound
-        if (!projectService.hasAccess(projectUuid, currentUsername)) return GetTasksByProjectUuid.AccessDenied
-
-        return GetTasksByProjectUuid.Success(taskService.getAllByProjectUuid(projectUuid))
-    }
+    @ProjectChecks(projectUuidPath = "projectUuid")
+    fun getAllTasksByProjectUuid(projectUuid: UUID, currentUsername: String) =
+        taskService.getAllByProjectUuid(projectUuid)
 
     @Transactional
+    @ProjectChecks(projectUuidPath = "projectUuid", requiredAuthority = ProjectAuthority.ASSIGN_ROLES)
     fun changeRole(
         projectUuid: UUID,
         currentUsername: String,
         changeUserRoleCommand: ChangeUserRoleCommand
     ): ChangeUserRoleResult {
-        if (!projectService.existsByUuid(projectUuid)) return ChangeUserRoleResult.ProjectNotFound
-
-        val currentUserRole = projectService.getRole(projectUuid, currentUsername)
-        if (currentUserRole == null || ProjectAuthority.ASSIGN_ROLES !in currentUserRole.authorities)
-            return ChangeUserRoleResult.AccessDenied
-
         val targetUser = changeUserRoleCommand.userName
-        if (!userService.existsByUserName(targetUser)) return ChangeUserRoleResult.TargetUserNotFound
-        if (!projectService.hasAccess(projectUuid, targetUser)) return ChangeUserRoleResult.TargetUserHasNoAccess
-
-        projectService.changeRole(projectUuid, targetUser, changeUserRoleCommand.role)
-        return ChangeUserRoleResult.Success
+        return withUserValidation(
+            targetUser,
+            projectUuid,
+            ChangeUserRoleResult.TargetUserNotFound,
+            ChangeUserRoleResult.TargetUserHasNoAccess
+        ) {
+            projectService.changeRole(projectUuid, targetUser, changeUserRoleCommand.role)
+            ChangeUserRoleResult.Success
+        }
     }
 
     @Transactional(readOnly = true)
+    @ProjectChecks(projectUuidPath = "projectUuid")
     fun getTaskProfileByNumber(number: Int, projectUuid: UUID, currentUsername: String): GetTaskProfileByNumber {
-        if (!projectService.existsByUuid(projectUuid)) return GetTaskProfileByNumber.ProjectNotFound
-        if (!taskService.existsByProjectUuidAndNumber(number, projectUuid)) return GetTaskProfileByNumber.TaskNotFound
-        if (!projectService.hasAccess(projectUuid, currentUsername)) return GetTaskProfileByNumber.AccessDenied
-
+        if (!taskService.existsByProjectUuidAndNumber(number, projectUuid)) {
+            return GetTaskProfileByNumber.TaskNotFound
+        }
         return GetTaskProfileByNumber.Success(taskService.getProfileByNumberAndProjectUuid(number, projectUuid))
     }
 
     @Transactional
+    @ProjectChecks(projectUuidPath = "projectUuid")
     fun getTasksByAssigneeAndProjectUuid(
         assignee: String,
         projectUuid: UUID
-    ): GetTasksByAssigneeUserAndProjectUuid {
-        if (!projectService.existsByUuid(projectUuid)) return GetTasksByAssigneeUserAndProjectUuid.ProjectNotFound
-        if (!projectService.hasAccess(projectUuid, assignee)) return GetTasksByAssigneeUserAndProjectUuid.AccessDenied
-
-        val tasks = taskService.getAllByAssigneeAndProjectUuid(assignee, projectUuid)
-        return GetTasksByAssigneeUserAndProjectUuid.Success(tasks)
-    }
+    ) = taskService.getAllByAssigneeAndProjectUuid(assignee, projectUuid)
 
     @Transactional
+    @ProjectChecks(projectUuidPath = "projectUuid", requiredAuthority = ProjectAuthority.CREATE_TASK)
     fun createTask(author: String, projectUuid: UUID, createTaskCommand: CreateTaskCommand): CreateTaskResult {
-        if (!projectService.existsByUuid(projectUuid)) return CreateTaskResult.ProjectNotFound
-
-        val currentUserRole = projectService.getRole(projectUuid, author)
-        if (currentUserRole == null || ProjectAuthority.CREATE_TASK !in currentUserRole.authorities)
-            return CreateTaskResult.AccessDenied
-
         val assignee = createTaskCommand.assignee
         if (assignee != null) {
-            if (!userService.existsByUserName(assignee)) return CreateTaskResult.AssigneeNotFound
-            if (!projectService.hasAccess(projectUuid, assignee)) return CreateTaskResult.AssigneeHasNoAccess
+            return withUserValidation(
+                assignee,
+                projectUuid,
+                CreateTaskResult.AssigneeNotFound,
+                CreateTaskResult.AssigneeHasNoAccess
+            ) { CreateTaskResult.Success(taskService.create(author, projectUuid, createTaskCommand)) }
         }
-
         val taskNum = taskService.create(author, projectUuid, createTaskCommand)
         return CreateTaskResult.Success(taskNum)
     }
 
     @Transactional
+    @ProjectChecks(projectUuidPath = "projectUuid", requiredAuthority = ProjectAuthority.UPDATE_TASK)
     fun updateTask(
         number: Int,
         projectUuid: UUID,
         currentUsername: String,
         updateTaskCommand: UpdateTaskCommand
     ): UpdateTaskResult {
-        if (!projectService.existsByUuid(projectUuid)) return UpdateTaskResult.ProjectNotFound
         if (!taskService.existsByProjectUuidAndNumber(number, projectUuid)) return UpdateTaskResult.TaskNotFound
-
-        val currentUserRole = projectService.getRole(projectUuid, currentUsername)
-        if (currentUserRole == null || ProjectAuthority.UPDATE_TASK !in currentUserRole.authorities)
-            return UpdateTaskResult.AccessDenied
 
         val assignee = updateTaskCommand.assignee
         if (assignee != null) {
-            if (!userService.existsByUserName(assignee)) return UpdateTaskResult.AssigneeNotFound
-            if (!projectService.hasAccess(projectUuid, assignee)) return UpdateTaskResult.AssigneeHasNoAccess
+            return withUserValidation(
+                assignee,
+                projectUuid,
+                UpdateTaskResult.AssigneeNotFound,
+                UpdateTaskResult.AssigneeHasNoAccess
+            ) {
+                taskService.update(number, projectUuid, updateTaskCommand)
+                UpdateTaskResult.Success
+            }
         }
-
-        return taskService.update(number, projectUuid, updateTaskCommand)
+        taskService.update(number, projectUuid, updateTaskCommand)
+        return UpdateTaskResult.Success
     }
 
     @Transactional
+    @ProjectChecks(projectUuidPath = "projectUuid", requiredAuthority = ProjectAuthority.DELETE_TASK)
     fun deleteTask(number: Int, projectUuid: UUID, currentUsername: String): DeleteTaskResult {
-        if (!projectService.existsByUuid(projectUuid)) return DeleteTaskResult.ProjectNotFound
         if (!taskService.existsByProjectUuidAndNumber(number, projectUuid)) return DeleteTaskResult.TaskNotFound
+        taskService.delete(number, projectUuid)
+        return DeleteTaskResult.Success
+    }
 
-        val currentUserRole = projectService.getRole(projectUuid, currentUsername)
-        if (currentUserRole == null || ProjectAuthority.DELETE_TASK !in currentUserRole.authorities)
-            return DeleteTaskResult.AccessDenied
+    private fun <T> withUserValidation(
+        username: String,
+        projectUuid: UUID,
+        notFound: T,
+        noAccess: T,
+        success: () -> T
+    ): T {
+        return when (validateUser(username, projectUuid)) {
+            UserValidation.NotFound -> notFound
+            UserValidation.HasNoAccess -> noAccess
+            UserValidation.Success -> success()
+        }
+    }
 
-        return taskService.delete(number, projectUuid)
+    private fun validateUser(username: String, projectUuid: UUID): UserValidation {
+        return if (!userService.existsByUserName(username)) {
+            UserValidation.NotFound
+        } else if (!projectService.hasAccess(projectUuid, username)) {
+            UserValidation.HasNoAccess
+        } else UserValidation.Success
+    }
+
+    sealed interface UserValidation {
+        object Success : UserValidation
+        object NotFound : UserValidation
+        object HasNoAccess : UserValidation
     }
 }

@@ -1,11 +1,12 @@
 package benjamin.rest.projects
 
-import benjamin.projects.tasks.api.GetTasksByProjectUuid
 import benjamin.projects.tasks.api.Task
 import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -92,7 +93,7 @@ class TasksRestControllerGetAllByProjectUuidTest {
 
     @Test
     fun `should return 404 Not Found when no such project exists`() {
-        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } returns GetTasksByProjectUuid.ProjectNotFound
+        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } throws ProjectNotFoundException("Project not found")
 
         web.get("/projects/$uuid/tasks") {
             mockJwt()
@@ -105,7 +106,7 @@ class TasksRestControllerGetAllByProjectUuidTest {
 
     @Test
     fun `should return 403 Forbidden when user doesnt have access to this project`() {
-        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } returns GetTasksByProjectUuid.AccessDenied
+        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } throws ProjectAccessDeniedException("Access denied")
 
         web.get("/projects/$uuid/tasks") {
             mockJwt()
@@ -118,11 +119,7 @@ class TasksRestControllerGetAllByProjectUuidTest {
 
     @Test
     fun `should return 200 OK with empty tasks`() {
-        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } returns GetTasksByProjectUuid.Success(
-            Tasks(
-                emptyList()
-            )
-        )
+        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } returns Tasks(emptyList())
 
         web.get("/projects/$uuid/tasks") {
             mockJwt()
@@ -145,7 +142,7 @@ class TasksRestControllerGetAllByProjectUuidTest {
 
     @Test
     fun `should return 200 OK when there no problems`() {
-        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } returns GetTasksByProjectUuid.Success(tasks)
+        every { projectModel.getAllTasksByProjectUuid(uuid, currentUser) } returns tasks
 
         web.get("/projects/$uuid/tasks") {
             mockJwt()

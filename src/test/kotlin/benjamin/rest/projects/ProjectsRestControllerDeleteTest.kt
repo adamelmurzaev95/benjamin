@@ -1,8 +1,9 @@
 package benjamin.rest.projects
 
-import benjamin.projects.api.DeleteProjectResult
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito
 import org.springframework.beans.factory.annotation.Autowired
@@ -43,7 +44,7 @@ class ProjectsRestControllerDeleteTest {
     @Test
     fun `should return 404 Not Found when project with such uuid doesnt exist`() {
         Mockito.`when`(projectModel.deleteProject(uuid, currentUser))
-            .thenReturn(DeleteProjectResult.NotFound)
+            .thenThrow(ProjectNotFoundException::class.java)
 
         web.delete("/projects/$uuid") {
             mockJwt()
@@ -58,7 +59,7 @@ class ProjectsRestControllerDeleteTest {
     @Test
     fun `should return 403 Forbidden when user doesnt have access to this project`() {
         Mockito.`when`(projectModel.deleteProject(uuid, currentUser))
-            .thenReturn(DeleteProjectResult.AccessDenied)
+            .thenThrow(ProjectAccessDeniedException::class.java)
 
         web.delete("/projects/$uuid") {
             mockJwt()
@@ -72,9 +73,6 @@ class ProjectsRestControllerDeleteTest {
 
     @Test
     fun `should return 200 OK when there no problems`() {
-        Mockito.`when`(projectModel.deleteProject(uuid, currentUser))
-            .thenReturn(DeleteProjectResult.Success)
-
         web.delete("/projects/$uuid") {
             mockJwt()
             contentType = MediaType.APPLICATION_JSON

@@ -4,6 +4,8 @@ import benjamin.projects.tasks.api.CreateTaskCommand
 import benjamin.projects.tasks.api.CreateTaskResult
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -67,7 +69,7 @@ class TasksRestControllerCreateTest {
 
     @Test
     fun `should return 404 Not Found when project with such uuid doesnt exist`() {
-        every { projectModel.createTask(currentUser, uuid, createTaskCommand) } returns CreateTaskResult.ProjectNotFound
+        every { projectModel.createTask(currentUser, uuid, createTaskCommand) } throws ProjectNotFoundException("Project not found")
 
         web.post("/projects/$uuid/tasks") {
             mockJwt()
@@ -80,7 +82,7 @@ class TasksRestControllerCreateTest {
 
     @Test
     fun `should return 403 Forbidden when user doesnt have access to this project`() {
-        every { projectModel.createTask(currentUser, uuid, createTaskCommand) } returns CreateTaskResult.AccessDenied
+        every { projectModel.createTask(currentUser, uuid, createTaskCommand) } throws ProjectAccessDeniedException("Access denied")
 
         web.post("/projects/$uuid/tasks") {
             mockJwt()

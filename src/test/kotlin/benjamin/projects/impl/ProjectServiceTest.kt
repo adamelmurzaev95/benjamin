@@ -4,7 +4,6 @@ import benjamin.TestContainerPostgres
 import benjamin.projects.api.CreateProjectCommand
 import benjamin.projects.api.Project
 import benjamin.projects.api.UpdateProjectCommand
-import benjamin.projects.api.UpdateProjectResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -75,14 +74,9 @@ class ProjectServiceTest {
     }
 
     @Test
-    fun `update should return Success`() {
+    fun `update`() {
         val uuid = service.create(author, createProjectCommand)
-
-        assertEquals(
-            UpdateProjectResult.Success,
-            service.update(uuid, UpdateProjectCommand("HRMS"))
-        )
-
+        service.update(uuid, UpdateProjectCommand(title = "HRMS"))
         assertEquals(
             "HRMS",
             service.getByUuid(uuid).title

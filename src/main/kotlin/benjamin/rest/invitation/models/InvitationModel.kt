@@ -12,6 +12,7 @@ import benjamin.projects.api.Project
 import benjamin.projects.impl.ProjectAuthority
 import benjamin.projects.impl.ProjectRepository
 import benjamin.projects.impl.ProjectService
+import benjamin.security.ProjectChecks
 import benjamin.users.api.User
 import benjamin.users.impl.UserService
 import benjamin.users.impl.UsersFetcher
@@ -36,13 +37,8 @@ class InvitationModel(
     private val logger = LoggerFactory.getLogger(javaClass)
 
     @Transactional
+    @ProjectChecks(projectUuidPath = "inviteCommand.projectUuid", requiredAuthority = ProjectAuthority.INVITE)
     fun invite(inviteCommand: InviteCommand, author: String): InviteResult {
-        if (!projectService.existsByUuid(inviteCommand.projectUuid)) return InviteResult.ProjectNotFound
-
-        val currentUserRole = projectService.getRole(inviteCommand.projectUuid, author)
-        if (currentUserRole == null || ProjectAuthority.INVITE !in currentUserRole.authorities)
-            return InviteResult.AccessDenied
-
         val receiver = userService.getByUsername(inviteCommand.receiver)
         if (receiver == null) return InviteResult.ReceiverNotFound
 
@@ -58,11 +54,12 @@ class InvitationModel(
     @Transactional
     fun join(linkUuid: UUID, currentUsername: String): JoinResult {
         val invitation = invitationService.getByUuid(linkUuid)
+
         if (invitation == null) return JoinResult.InvitationNotFound
         if (invitation.expireAt.isBefore(Instant.now())) return JoinResult.InvitationExpired
         if (invitation.receiver != currentUsername) return JoinResult.AccessDenied
-        projectService.addToProject(invitation.projectUuid, invitation.receiver, invitation.role)
 
+        projectService.addToProject(invitation.projectUuid, invitation.receiver, invitation.role)
         return JoinResult.Success
     }
 
@@ -91,7 +88,7 @@ class InvitationModel(
         return "Dear ${receiver.firstName}. $sender invites you to ${project.title} project. If you want to join follow the link ${buildUrl(linkUuid)}"
     }
 
-    fun buildUrl(linkUuid: UUID) = ServletUriComponentsBuilder.fromCurrentContextPath()
+    private fun buildUrl(linkUuid: UUID) = ServletUriComponentsBuilder.fromCurrentContextPath()
         .path("/invitation/join/$linkUuid")
         .toUriString()
 }

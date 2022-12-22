@@ -5,6 +5,8 @@ import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -83,7 +85,7 @@ class TasksRestControllerGetProfileByUuidTest {
 
     @Test
     fun `should return 404 Not Found when there no project with such uuid`() {
-        every { projectModel.getTaskProfileByNumber(1, uuid, currentUser) } returns GetTaskProfileByNumber.ProjectNotFound
+        every { projectModel.getTaskProfileByNumber(1, uuid, currentUser) } throws ProjectNotFoundException("Project not found")
 
         web.get("/projects/$uuid/tasks/1") {
             mockJwt()
@@ -96,7 +98,7 @@ class TasksRestControllerGetProfileByUuidTest {
 
     @Test
     fun `should return 403 Forbidden when user doesnt have access to this project`() {
-        every { projectModel.getTaskProfileByNumber(1, uuid, currentUser) } returns GetTaskProfileByNumber.AccessDenied
+        every { projectModel.getTaskProfileByNumber(1, uuid, currentUser) } throws ProjectAccessDeniedException("Access denied")
 
         web.get("/projects/$uuid/tasks/1") {
             mockJwt()

@@ -1,9 +1,10 @@
 package benjamin.rest.projects
 
 import benjamin.projects.api.UpdateProjectCommand
-import benjamin.projects.api.UpdateProjectResult
 import benjamin.rest.projects.models.ProjectModel
 import benjamin.security.Oauth2SecurityConfig
+import benjamin.security.ProjectAccessDeniedException
+import benjamin.security.ProjectNotFoundException
 import com.ninjasquad.springmockk.MockkBean
 import io.mockk.every
 import org.junit.jupiter.api.Test
@@ -67,7 +68,7 @@ class ProjectsRestControllerUpdateTest {
 
     @Test
     fun `should return 404 Not Found when project with such uuid doesnt exist`() {
-        every { projectModel.updateProject(uuid, updateProjectCommand, currentUser) } returns UpdateProjectResult.NotFound
+        every { projectModel.updateProject(uuid, updateProjectCommand, currentUser) } throws ProjectNotFoundException("Project not found")
 
         web.put("/projects/$uuid") {
             mockJwt()
@@ -88,7 +89,7 @@ class ProjectsRestControllerUpdateTest {
                 updateProjectCommand,
                 currentUser
             )
-        } returns UpdateProjectResult.AccessDenied
+        } throws ProjectAccessDeniedException("Access denied")
 
         web.put("/projects/$uuid") {
             mockJwt()
@@ -103,7 +104,7 @@ class ProjectsRestControllerUpdateTest {
 
     @Test
     fun `should return 200 OK when there no problems`() {
-        every { projectModel.updateProject(uuid, updateProjectCommand, currentUser) } returns UpdateProjectResult.Success
+        every { projectModel.updateProject(uuid, updateProjectCommand, currentUser) } returns Unit
 
         web.put("/projects/$uuid") {
             mockJwt()

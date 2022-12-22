@@ -10,7 +10,6 @@ import benjamin.projects.tasks.api.TaskProfile
 import benjamin.projects.tasks.api.TaskStatus
 import benjamin.projects.tasks.api.Tasks
 import benjamin.projects.tasks.api.UpdateTaskCommand
-import benjamin.projects.tasks.api.UpdateTaskResult
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -170,7 +169,7 @@ class TaskServiceTest {
     fun `update should update task`() {
         val num = taskService.create(username1, uuid, createTaskCommand)
 
-        val result = taskService.update(
+        taskService.update(
             number = num,
             projectUuid = uuid,
             updateCommand = UpdateTaskCommand(
@@ -178,10 +177,6 @@ class TaskServiceTest {
                 description = "Do something",
                 status = TaskStatus.DONE
             )
-        )
-        assertEquals(
-            UpdateTaskResult.Success,
-            result
         )
 
         val expected = Task(
