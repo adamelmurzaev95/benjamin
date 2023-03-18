@@ -24,16 +24,16 @@ enum class ProjectAuthority {
     ASSIGN_ROLES
 }
 
-enum class ProjectRole(val authorities: List<ProjectAuthority>) {
+enum class ProjectRole(val authorities: Set<ProjectAuthority>) {
     USER(
-        listOf(
+        setOf(
             ProjectAuthority.SEE_PROJECT,
             ProjectAuthority.CREATE_TASK,
             ProjectAuthority.UPDATE_TASK
         )
     ),
     ADMIN(
-        listOf(
+        setOf(
             ProjectAuthority.SEE_PROJECT,
             ProjectAuthority.UPDATE_PROJECT,
             ProjectAuthority.CREATE_TASK,
@@ -43,7 +43,7 @@ enum class ProjectRole(val authorities: List<ProjectAuthority>) {
             ProjectAuthority.ASSIGN_ROLES
         )
     ),
-    OWNER(ProjectAuthority.values().toList())
+    OWNER(ProjectAuthority.values().toSet())
 }
 
 @Entity

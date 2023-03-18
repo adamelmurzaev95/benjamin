@@ -24,9 +24,13 @@ class EventsMonitor(
         invitationEventService.getAll()
             .map { Pair(ProducerRecord(topic, null, it.eventId.toString(), mapper.writeValueAsString(it)), it.eventId) }
             .forEach {
-                kafkaTemplate.send(it.first).get()
-                logger.info("${it.second} is sent to Kafka")
-                invitationEventService.deleteById(it.second)
+                try {
+                    kafkaTemplate.send(it.first).get()
+                    logger.info("${it.second} is sent to Kafka")
+                    invitationEventService.deleteById(it.second)
+                } catch (e: Exception) {
+                    logger.error("Failed to process record with event id {}", it.second)
+                }
             }
     }
 }

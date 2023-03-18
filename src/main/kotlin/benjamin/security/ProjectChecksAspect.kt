@@ -85,8 +85,8 @@ class ProjectChecksAspect(
         if (!projectService.existsByUuid(projectUuid)) {
             throw ProjectNotFoundException("Project with uuid $projectUuid not found")
         }
-        if (projectsCheck.accessRequired &&
-            !projectAccessChecker.checkAccess(projectUuid, projectsCheck.requiredAuthority)
+        if (projectsCheck.accessRequired
+            && !projectAccessChecker.checkAccess(projectUuid, projectsCheck.requiredAuthority)
         ) {
             throw ProjectAccessDeniedException("Access denied")
         }
